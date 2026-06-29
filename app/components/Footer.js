@@ -41,9 +41,8 @@ const Footer = () => {
             {/* Social Icons */}
             <div className="flex items-center gap-4">
               {[
-                { icon: <Github className="h-5 w-5" />, href: "https://github.com", name: "GitHub" },
-                { icon: <Twitter className="h-5 w-5" />, href: "https://twitter.com", name: "Twitter" },
-                { icon: <Linkedin className="h-5 w-5" />, href: "https://linkedin.com", name: "LinkedIn" },
+                { icon: <Github className="h-5 w-5" />, href: "https://github.com/anuragsinghrajput123456789", name: "GitHub" },
+                { icon: <Linkedin className="h-5 w-5" />, href: "https://www.linkedin.com/in/anurag-singh-09629b22a/", name: "LinkedIn" },
               ].map((social) => (
                 <a
                   key={social.name}
@@ -118,7 +117,7 @@ const Footer = () => {
             &copy; {currentYear} BitLinks. All rights reserved.
           </p>
           <p className="text-sm flex items-center gap-1.5 text-gray-500">
-            Made with <Heart className="h-4 w-4 text-pink-500 animate-pulse fill-pink-500" /> for developers.
+            Made with <Heart className="h-4 w-4 text-pink-500 animate-pulse fill-pink-500" /> by <a href="mailto:anuragsinghj678@gmail.com" className="text-purple-400 hover:text-purple-300 transition-colors">Anurag Singh</a>
           </p>
         </div>
       </div>

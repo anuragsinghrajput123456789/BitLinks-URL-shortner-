@@ -2,7 +2,7 @@
 import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Bolt, BarChart2, Shield, Link2, Sparkles, ArrowUpRight, Compass, Users, CheckCircle } from "lucide-react";
+import { Bolt, BarChart2, Shield, Link2, Sparkles, ArrowUpRight, Compass, Users, CheckCircle, Github, Linkedin } from "lucide-react";
 
 const NetworkSvg = () => (
   <svg className="w-full h-auto text-purple-500 max-w-md mx-auto drop-shadow-[0_0_20px_rgba(168,85,247,0.2)]" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -154,6 +154,47 @@ const AboutPage = () => {
                 <p className="text-sm text-gray-400 leading-relaxed">{feature.description}</p>
               </motion.div>
             ))}
+          </div>
+        </section>
+
+        {/* Meet the Builder Section */}
+        <section className="space-y-16">
+          <div className="text-center max-w-2xl mx-auto space-y-4">
+            <h2 className="text-3xl font-extrabold text-white">Meet the Architect</h2>
+            <p className="text-sm text-gray-400">The developer behind the design and engineering of BitLinks.</p>
+          </div>
+
+          <div className="max-w-2xl mx-auto glass-panel p-8 sm:p-10 rounded-3xl border border-purple-500/20 shadow-xl text-center space-y-6">
+            <div className="mx-auto w-24 h-24 rounded-full bg-gradient-to-tr from-purple-600 to-pink-600 p-1 shadow-lg shadow-purple-500/30 flex items-center justify-center">
+              <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center">
+                <Users className="h-10 w-10 text-purple-400" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-2xl font-black text-white">Anurag Singh</h3>
+              <p className="text-purple-400 text-sm font-semibold">Full Stack Developer & Systems Designer</p>
+            </div>
+            <p className="text-gray-405 text-sm leading-relaxed max-w-md mx-auto">
+              Building scalable, futuristic applications with elegant user interfaces and robust code. Connect with me for inquiries, collaboration, or system designs.
+            </p>
+            <div className="flex justify-center gap-4 pt-2">
+              <a
+                href="https://github.com/anuragsinghrajput123456789"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-xs font-bold bg-slate-900 border border-slate-800 hover:border-purple-500/50 text-gray-300 hover:text-white px-5 py-2.5 rounded-xl transition-all"
+              >
+                <Github className="h-4 w-4" /> GitHub
+              </a>
+              <a
+                href="https://www.linkedin.com/in/anurag-singh-09629b22a/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-xs font-bold bg-slate-900 border border-slate-800 hover:border-purple-500/50 text-gray-300 hover:text-white px-5 py-2.5 rounded-xl transition-all"
+              >
+                <Linkedin className="h-4 w-4" /> LinkedIn
+              </a>
+            </div>
           </div>
         </section>
 
