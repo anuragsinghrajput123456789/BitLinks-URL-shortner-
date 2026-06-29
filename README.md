@@ -1,8 +1,18 @@
-# 🔗 BitLinks - Premium URL Shortener
+<p align="center">
+  <img src="public/logo.png" alt="BitLinks Logo" width="150" />
+</p>
+
+<h1 align="center">🔗 BitLinks</h1>
+<p align="center"><strong>Premium URL Shortener Ecosystem</strong></p>
+
+<p align="center">
+  <img src="public/banner.png" alt="BitLinks Banner" width="100%" style="border-radius: 12px;" />
+</p>
 
 BitLinks is a futuristic, highly performant, and secure URL Shortener application built with Next.js 15, MongoDB, and Tailwind CSS. It is designed for digital creators, developers, and marketing professionals who need clean, quick, and trackable links.
 
 ---
+
 
 ## 🚀 Key Features
 
