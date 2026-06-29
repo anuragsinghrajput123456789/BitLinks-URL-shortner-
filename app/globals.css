@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #a855f7;
+  --color-secondary: #f43f5e;
+  --color-accent: #06b6d4;
+  --color-dark-bg: #030014;
+  --color-dark-surface: #0a071b;
+  --color-dark-surface-hover: #130f2d;
+  --color-glass-fill: rgba(10, 7, 27, 0.5);
+  --color-glass-border: rgba(168, 85, 247, 0.15);
+  --color-glass-border-hover: rgba(244, 63, 94, 0.3);
+  
+  --font-geist: var(--font-geist-sans), ui-sans-serif, system-ui;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-dark-bg);
+    color: #e2e8f0;
+    font-family: var(--font-geist);
+    overflow-x: hidden;
+  }
+
+  /* Custom Glowing Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #030014;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #a855f7, #f43f5e);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #c084fc, #fb7185);
+  }
+}
+
+/* Glassmorphism utility classes */
+.glass-panel {
+  background: rgba(10, 7, 27, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(168, 85, 247, 0.15);
+}
+
+.glass-panel-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel-hover:hover {
+  background: rgba(19, 15, 45, 0.75);
+  border-color: rgba(244, 63, 94, 0.35);
+  box-shadow: 0 0 25px rgba(168, 85, 247, 0.2);
+}
+
+/* Animated Glowing Border */
+@keyframes border-glow-anim {
+  0%, 100% {
+    border-color: rgba(168, 85, 247, 0.2);
+  }
+  50% {
+    border-color: rgba(6, 182, 212, 0.6);
+  }
+}
+
+.glow-border {
+  animation: border-glow-anim 4s infinite ease-in-out;
+}
+
+/* Neon Text Glow */
+.text-neon-glow {
+  text-shadow: 0 0 10px rgba(168, 85, 247, 0.5), 0 0 20px rgba(168, 85, 247, 0.3);
+}
+
+.text-cyan-glow {
+  text-shadow: 0 0 10px rgba(6, 182, 212, 0.5), 0 0 20px rgba(6, 182, 212, 0.3);
+}
+
+/* Background animated mesh grid */
+.grid-bg {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(168, 85, 247, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(168, 85, 247, 0.05) 1px, transparent 1px);
+}
+
+/* Shifting animated light blobs */
+@keyframes float-blob {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.15);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+}
+
+.animate-blob {
+  animation: float-blob 15s infinite alternate ease-in-out;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Scanline HUD effect */
+.scanlines {
+  position: relative;
+  overflow: hidden;
+}
+
+.scanlines::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  z-index: 2;
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
+}
