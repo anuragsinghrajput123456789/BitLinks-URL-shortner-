@@ -1,6 +1,7 @@
-import clientPromise from "@/lib/mongoDB";
+import clientPromise, { executeDbWithRetry } from "@/lib/mongoDB";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { NextResponse } from "next/server";
 
 export async function POST(request) {
   try {
@@ -9,13 +10,13 @@ export async function POST(request) {
     try {
       body = await request.json();
     } catch (parseErr) {
-      return new Response(
-        JSON.stringify({
+      return NextResponse.json(
+        {
           success: false,
           error: true,
           message: "Malformed or invalid JSON payload",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        },
+        { status: 400 }
       );
     }
 
@@ -23,13 +24,13 @@ export async function POST(request) {
 
     // 2. Validate input existence and types
     if (!email || typeof email !== "string" || !password || typeof password !== "string") {
-      return new Response(
-        JSON.stringify({
+      return NextResponse.json(
+        {
           success: false,
           error: true,
           message: "Email and password are required and must be strings",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        },
+        { status: 400 }
       );
     }
 
@@ -37,110 +38,132 @@ export async function POST(request) {
     const trimmedPassword = password; // Do not trim password to preserve user choice
 
     if (!trimmedEmail || !trimmedPassword) {
-      return new Response(
-        JSON.stringify({
+      return NextResponse.json(
+        {
           success: false,
           error: true,
           message: "Email and password cannot be empty",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        },
+        { status: 400 }
       );
     }
 
     // 3. Email regex validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmedEmail)) {
-      return new Response(
-        JSON.stringify({
+      return NextResponse.json(
+        {
           success: false,
           error: true,
           message: "Invalid email address format",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        },
+        { status: 400 }
       );
     }
 
-    // 4. Connect to database
-    let client;
+    // 4. Connect to database and retrieve user
+    let user;
     try {
-      client = await clientPromise;
+      user = await executeDbWithRetry(async (client) => {
+        const db = client.db("bitlinks");
+        const collection = db.collection("users");
+        return await collection.findOne(
+          { email: trimmedEmail },
+          { projection: { name: 1, email: 1, password: 1 } }
+        );
+      });
     } catch (dbErr) {
-      console.error("Database connection failure in POST /api/auth/login:", dbErr);
-      return new Response(
-        JSON.stringify({
+      console.error("[POST /api/auth/login] [ERROR] Database connection/query failure:", dbErr);
+      return NextResponse.json(
+        {
           success: false,
           error: true,
           message: "Database server connection issue. Please try again later.",
-        }),
-        { status: 503, headers: { "Content-Type": "application/json" } }
+        },
+        { status: 503 }
       );
     }
 
-    const db = client.db("bitlinks");
-    const collection = db.collection("users");
-
-    // Find user
-    const user = await collection.findOne({ email: trimmedEmail });
     if (!user) {
-      return new Response(
-        JSON.stringify({
+      return NextResponse.json(
+        {
           success: false,
           error: true,
           message: "Invalid credentials",
-        }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
+        },
+        { status: 401 }
       );
     }
 
     // Check password
     const isMatch = await bcrypt.compare(trimmedPassword, user.password);
     if (!isMatch) {
-      return new Response(
-        JSON.stringify({
+      return NextResponse.json(
+        {
           success: false,
           error: true,
           message: "Invalid credentials",
-        }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
+        },
+        { status: 401 }
+      );
+    }
+
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      console.error("[POST /api/auth/login] [CRITICAL] process.env.JWT_SECRET is missing.");
+      return NextResponse.json(
+        {
+          success: false,
+          error: true,
+          message: "Internal server configuration error",
+        },
+        { status: 500 }
       );
     }
 
     // Generate Token
     const token = jwt.sign(
       { userId: user._id, email: user.email, name: user.name },
-      process.env.JWT_SECRET || "default_secret_key", // Fallback for dev
+      secret,
       { expiresIn: "7d" }
     );
 
     // Set Cookie
-    const response = new Response(
-      JSON.stringify({
+    const response = NextResponse.json(
+      {
         success: true,
         error: false,
         message: "Login successful",
         user: { name: user.name, email: user.email },
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
+      },
+      { status: 200 }
     );
 
-    // Secure cookie settings should be used in production
-    response.headers.set(
-      "Set-Cookie",
-      `token=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${
-        7 * 24 * 60 * 60
-      }`
-    );
+    // Secure cookie settings (HttpOnly, SameSite=Strict, Secure in production)
+    const isProd = process.env.NODE_ENV === "production";
+    const cookieOptions = [
+      `token=${token}`,
+      "Path=/",
+      "HttpOnly",
+      "SameSite=Strict",
+      `Max-Age=${7 * 24 * 60 * 60}`,
+    ];
+    if (isProd) {
+      cookieOptions.push("Secure");
+    }
+    response.headers.set("Set-Cookie", cookieOptions.join("; "));
 
     return response;
   } catch (error) {
-    console.error("Error in Login:", error);
-    return new Response(
-      JSON.stringify({
+    console.error("[POST /api/auth/login] [ERROR] Unexpected login failure:", error);
+    return NextResponse.json(
+      {
         success: false,
         error: true,
         message: "Internal server error",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      },
+      { status: 500 }
     );
   }
 }
+

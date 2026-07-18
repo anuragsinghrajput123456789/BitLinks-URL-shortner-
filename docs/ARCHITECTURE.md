@@ -94,13 +94,23 @@ JWT sessions are signed backend-side with a high-entropy secret (`JWT_SECRET`) u
   - `SameSite=Strict`: Shields the API from Cross-Site Request Forgery (CSRF) attempts.
   - `Secure` (in production): Forces the cookie to be transmitted solely over encrypted HTTPS connections.
 
-### B. Input Sanitization & Verification
+### B. Production Security Headers
+Standard security headers are injected in [next.config.mjs](file:///c:/Users/91836/Downloads/Mern-Ai-Projects/URL-shortner/next.config.mjs) for all request routes:
+- `X-Frame-Options: DENY` (prevents Clickjacking)
+- `X-Content-Type-Options: nosniff` (forces correct MIME types and blocks sniffing)
+- `Referrer-Policy: strict-origin-when-cross-origin` (controls referral details)
+- `Strict-Transport-Security` (enforces cryptographic SSL/TLS routing over HTTPS)
+
+### C. Input Sanitization & Verification
 1. **URL Scheme Restrictions**: The system rejects invalid protocols, allowing only `http:` and `https:` to protect against dangerous URI schemas like `javascript:` or `data:`.
-2. **Short URL Sanitization**: Custom slugs are parsed against a strict regular expression `/^[a-zA-Z0-9_-]+$/`. This blocks SQL Injection / BSON Injection payloads and ensures path compatibility.
+2. **Short URL Sanitization**: Custom slugs are parsed against a strict regular expression `/^[a-zA-Z0-9_-]+$/` and have a **30-character maximum length limit**. This blocks payload injection and prevents UI/database bloating.
 
 ---
 
 ## ⚙️ 4. Performance & Redirection Optimization
 
-1. **MongoDB Connection Caching**: The application utilizes a global database promise cache (`clientPromise` in `lib/mongoDB.js`) to prevent exhausting connection pools in serverless deployment cycles.
-2. **Click Analytics Buffering**: Redirect responses do not block on synchronous database writes. The redirection engine returns the HTTP 302 header immediately, while database updates (`$inc` clicks) are performed asynchronously in the background.
+1. **Resilient MongoDB Connection Caching**: The application utilizes a cached client promise inside [mongoDB.js](file:///c:/Users/91836/Downloads/Mern-Ai-Projects/URL-shortner/lib/mongoDB.js). If the database encounters a temporary outage, the cache resets on promise rejection to prevent permanent server failure states.
+2. **Database Operation Retries**: Crucial database transactions are wrapped in `executeDbWithRetry(operation, maxRetries, delayMs)` which performs linear-backoff retries for transient connection drops.
+3. **Early Slug Guard**: The redirection handler validates the dynamic `shorturl` path parameter format via regex before querying the database, instantly short-circuiting invalid paths with a 404 HTML response without database lookup overhead.
+4. **Click Analytics Buffering**: Redirect responses do not block on database writes. The redirection engine returns the HTTP 302 redirect location header immediately, while database updates (`$inc` clicks) are performed asynchronously in the background using Next.js 15's stable `after` API.
+

@@ -27,6 +27,8 @@ Creates a new creator/user profile.
 - **Authentication Required:** None
 - **Content-Type:** `application/json`
 
+* **Rate Limit**: 3 signup attempts per minute per IP address.
+
 #### Request Body
 ```json
 {
@@ -79,6 +81,7 @@ Authenticates the user, signs a JWT session token, and returns it in a secure co
 - **Route:** `POST /api/auth/login`
 - **Authentication Required:** None
 - **Content-Type:** `application/json`
+- **Rate Limit**: 5 login attempts per minute per IP address.
 
 #### Request Body
 ```json
@@ -130,6 +133,7 @@ Creates a new short URL map redirecting to a long destination URL. If the client
 - **Route:** `POST /api/generate`
 - **Authentication Required:** Optional (Reads cookie `token` if present)
 - **Content-Type:** `application/json`
+- **Rate Limit**: 30 URL generation requests per minute per IP address.
 
 #### Request Body
 ```json
@@ -138,6 +142,7 @@ Creates a new short URL map redirecting to a long destination URL. If the client
   "shorturl": "react-hooks"
 }
 ```
+*Note: If `shorturl` (custom alias) is provided, it must be between 1 and 30 characters in length and only contain alphanumeric characters, hyphens, or underscores.*
 
 #### Response (HTTP 201 Created)
 ```json
@@ -150,7 +155,7 @@ Creates a new short URL map redirecting to a long destination URL. If the client
 ```
 
 #### Common Error Responses
-* **HTTP 400 Bad Request (Invalid URL formats, Empty properties, Unsupported protocol schemes)**
+* **HTTP 400 Bad Request (Invalid URL formats, Alias length > 30, Empty properties, Unsupported protocol schemes)**
   ```json
   {
     "success": false,
@@ -169,6 +174,52 @@ Creates a new short URL map redirecting to a long destination URL. If the client
 
 ---
 
+### B. Retrieve User URLs
+Retrieves the history of shortened links created by the currently authenticated user.
+
+- **Route:** `GET /api/user/urls`
+- **Authentication Required:** Yes (Valid JWT in `token` cookie)
+- **Rate Limit**: 60 requests per minute per IP address.
+
+#### Response (HTTP 200 OK)
+```json
+{
+  "success": true,
+  "error": false,
+  "urls": [
+    {
+      "_id": "64b0f92b7c4d5d6789a1b2c3",
+      "url": "https://react.dev/reference/react/hooks",
+      "shorturl": "react-hooks",
+      "userId": "64b0f92b7c4d5d6789a1b2a1",
+      "clicks": 14,
+      "createdAt": "2026-07-18T16:15:00.000Z",
+      "fullShortUrl": "https://bitlinks.io/react-hooks"
+    }
+  ]
+}
+```
+
+#### Common Error Responses
+* **HTTP 401 Unauthorized (Missing or Invalid token)**
+  ```json
+  {
+    "success": false,
+    "error": true,
+    "message": "Unauthorized"
+  }
+  ```
+* **HTTP 503 Service Unavailable (DB Connection Fail)**
+  ```json
+  {
+    "success": false,
+    "error": true,
+    "message": "Failed to connect to the database"
+  }
+  ```
+
+---
+
 ## ⚡ 3. Redirection Engine (System Entry Point)
 
 Handles redirection from shortened URLs to their original destination.
@@ -178,10 +229,10 @@ Handles redirection from shortened URLs to their original destination.
 
 #### Process Flow
 1. Receives shorturl alias parameter.
-2. Gracefully filters out default crawler paths (`favicon.ico`, `robots.txt`, `sitemap.xml`).
+2. Gracefully filters out default crawler paths (`favicon.ico`, `robots.txt`, `sitemap.xml`) and runs early parameter format verification (matches `/^[a-zA-Z0-9_-]+$/`).
 3. Queries MongoDB to find matching document.
 4. If found:
-   - Increments the `clicks` counter in MongoDB using `$inc`.
+   - Increments the `clicks` counter in MongoDB using `$inc` asynchronously via Next.js `after`.
    - Returns a **302 Found** redirect response to the target `url`.
 5. If not found:
    - Responds with `404 Not Found` presenting a custom glassmorphism web layout.
@@ -192,3 +243,4 @@ Handles redirection from shortened URLs to their original destination.
 * **HTTP 404 Not Found (Beautiful Fallback Webpage)**
   - Content-Type: `text/html`
   - HTML structure with error details.
+

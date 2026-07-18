@@ -76,12 +76,13 @@ const Signup = () => {
             
             {/* Full Name */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">
+              <label htmlFor="signup-name" className="block text-xs font-bold text-gray-400 uppercase tracking-wider">
                 Full Name
               </label>
               <div className="relative">
                 <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-600 h-4 w-4" />
                 <input
+                  id="signup-name"
                   name="name"
                   type="text"
                   required
@@ -94,12 +95,13 @@ const Signup = () => {
 
             {/* Email Address */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">
+              <label htmlFor="signup-email" className="block text-xs font-bold text-gray-400 uppercase tracking-wider">
                 Email address
               </label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-600 h-4 w-4" />
                 <input
+                  id="signup-email"
                   name="email"
                   type="email"
                   required
@@ -112,12 +114,13 @@ const Signup = () => {
 
             {/* Password */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">
+              <label htmlFor="signup-password" className="block text-xs font-bold text-gray-400 uppercase tracking-wider">
                 Password
               </label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-600 h-4 w-4" />
                 <input
+                  id="signup-password"
                   name="password"
                   type={showPassword ? "text" : "password"}
                   required

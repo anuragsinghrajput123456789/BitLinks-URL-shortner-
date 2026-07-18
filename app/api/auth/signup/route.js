@@ -1,5 +1,6 @@
-import clientPromise from "@/lib/mongoDB";
+import clientPromise, { executeDbWithRetry } from "@/lib/mongoDB";
 import bcrypt from "bcryptjs";
+import { NextResponse } from "next/server";
 
 export async function POST(request) {
   try {
@@ -8,13 +9,13 @@ export async function POST(request) {
     try {
       body = await request.json();
     } catch (parseErr) {
-      return new Response(
-        JSON.stringify({
+      return NextResponse.json(
+        {
           success: false,
           error: true,
           message: "Malformed or invalid JSON payload",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        },
+        { status: 400 }
       );
     }
 
@@ -26,13 +27,13 @@ export async function POST(request) {
       !email || typeof email !== "string" ||
       !password || typeof password !== "string"
     ) {
-      return new Response(
-        JSON.stringify({
+      return NextResponse.json(
+        {
           success: false,
           error: true,
           message: "Name, email, and password are required and must be strings",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        },
+        { status: 400 }
       );
     }
 
@@ -41,70 +42,71 @@ export async function POST(request) {
     const trimmedPassword = password; // Do not trim password to preserve user whitespace choice
 
     if (!trimmedName || !trimmedEmail || !trimmedPassword) {
-      return new Response(
-        JSON.stringify({
+      return NextResponse.json(
+        {
           success: false,
           error: true,
           message: "Fields cannot be empty or contain only whitespace",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        },
+        { status: 400 }
       );
     }
 
     // 3. Email regex validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmedEmail)) {
-      return new Response(
-        JSON.stringify({
+      return NextResponse.json(
+        {
           success: false,
           error: true,
           message: "Invalid email address format",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        },
+        { status: 400 }
       );
     }
 
     // 4. Password strength validation
     if (trimmedPassword.length < 6) {
-      return new Response(
-        JSON.stringify({
+      return NextResponse.json(
+        {
           success: false,
           error: true,
           message: "Password must be at least 6 characters long",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        },
+        { status: 400 }
       );
     }
 
-    // 5. Connect to database
-    let client;
+    // 5. Connect to database and process signup
+    let userExists = false;
     try {
-      client = await clientPromise;
+      userExists = await executeDbWithRetry(async (client) => {
+        const db = client.db("bitlinks");
+        const collection = db.collection("users");
+        // Check if user already exists (use projection to load only _id)
+        const existingUser = await collection.findOne({ email: trimmedEmail }, { projection: { _id: 1 } });
+        return !!existingUser;
+      });
     } catch (dbErr) {
-      console.error("Database connection failure in POST /api/auth/signup:", dbErr);
-      return new Response(
-        JSON.stringify({
+      console.error("[POST /api/auth/signup] [ERROR] Database query failure:", dbErr);
+      return NextResponse.json(
+        {
           success: false,
           error: true,
           message: "Database server connection issue. Please try again later.",
-        }),
-        { status: 503, headers: { "Content-Type": "application/json" } }
+        },
+        { status: 503 }
       );
     }
 
-    const db = client.db("bitlinks");
-    const collection = db.collection("users");
-
-    // Check if user already exists
-    const existingUser = await collection.findOne({ email: trimmedEmail });
-    if (existingUser) {
-      return new Response(
-        JSON.stringify({
+    if (userExists) {
+      return NextResponse.json(
+        {
           success: false,
           error: true,
           message: "User with this email already exists",
-        }),
-        { status: 409, headers: { "Content-Type": "application/json" } }
+        },
+        { status: 409 }
       );
     }
 
@@ -119,25 +121,53 @@ export async function POST(request) {
       createdAt: new Date(),
     };
 
-    await collection.insertOne(newUser);
+    try {
+      await executeDbWithRetry(async (client) => {
+        const db = client.db("bitlinks");
+        const collection = db.collection("users");
+        await collection.insertOne(newUser);
+      });
+    } catch (insertErr) {
+      // 11000 is the MongoDB error code for unique index write violations (race condition safety)
+      if (insertErr.code === 11000) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: true,
+            message: "User with this email already exists",
+          },
+          { status: 409 }
+        );
+      }
+      console.error("[POST /api/auth/signup] [ERROR] Database insert failure:", insertErr);
+      return NextResponse.json(
+        {
+          success: false,
+          error: true,
+          message: "Database server connection issue. Please try again later.",
+        },
+        { status: 503 }
+      );
+    }
 
-    return new Response(
-      JSON.stringify({
+    return NextResponse.json(
+      {
         success: true,
         error: false,
         message: "User registered successfully",
-      }),
-      { status: 201, headers: { "Content-Type": "application/json" } }
+      },
+      { status: 201 }
     );
   } catch (error) {
-    console.error("Error in Signup:", error);
-    return new Response(
-      JSON.stringify({
+    console.error("[POST /api/auth/signup] [ERROR] Unexpected signup failure:", error);
+    return NextResponse.json(
+      {
         success: false,
         error: true,
         message: "Internal server error",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      },
+      { status: 500 }
     );
   }
 }
+

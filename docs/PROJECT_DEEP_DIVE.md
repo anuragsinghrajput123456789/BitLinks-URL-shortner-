@@ -35,27 +35,35 @@ URL-shortner/
 
 ---
 
-# PHASE 2: DATABASE CONNECTION POOL CACHING
+# PHASE 2: RESILIENT DATABASE CONNECTION & RETRY CACHING
 
 ### Implementation Analysis (`lib/mongoDB.js`)
-To avoid exhausts on serverless infrastructure, the database connection uses global promise memoization in development environments.
+To avoid exhausting connection pools on serverless infrastructure, the database connection cache uses global promise memoization in development and production with a resilient Thenable reset wrapper.
 
-*   **In Development (`process.env.NODE_ENV === 'development'`)**: The MongoDB client promise is bound to a global variable (`global._mongoClientPromise`). This prevents reloading hot-compiled Next.js modules from rebuilding new client instances on every file save.
-*   **In Production**: The MongoDB driver instantiates directly and registers a unified connection pool.
+*   **Resilient Promise Caching**: The default export `clientPromise` is a custom Thenable object. If the database connection drops, the cached promise is cleared (resetting `global._mongoClientPromise` or local cache instance). This prevents the server from entering a permanent "503 connection error" state when the database goes offline temporarily.
+*   **Linear Backoff Operations**: DB queries are executed via `executeDbWithRetry(operation, maxRetries, delayMs)` which automatically retries operations up to 3 times on transient network failures.
 
 ```javascript
-// lib/mongoDB.js key logic
-if (process.env.NODE_ENV === "development") {
-  if (!global._mongoClientPromise) {
-    client = new MongoClient(uri, options);
-    global._mongoClientPromise = client.connect();
+// lib/mongoDB.js resilient promise wrapper
+const clientPromise = {
+  then(onFulfilled, onRejected) {
+    let promise;
+    if (process.env.NODE_ENV === "development") {
+      if (!global._mongoClientPromise) {
+        global._mongoClientPromise = createClientPromise();
+      }
+      promise = global._mongoClientPromise;
+    } else {
+      if (!clientPromiseInstance) {
+        clientPromiseInstance = createClientPromise();
+      }
+      promise = clientPromiseInstance;
+    }
+    return promise.then(onFulfilled, onRejected);
   }
-  clientPromise = global._mongoClientPromise;
-} else {
-  client = new MongoClient(uri, options);
-  clientPromise = client.connect();
-}
+};
 ```
+
 
 ---
 
@@ -95,17 +103,19 @@ The authentication system employs salted Blowfish password hashes and cryptograp
 ### B. Redirection Resolution (`app/[shorturl]/route.js`)
 This route serves as the dynamic client entry point:
 
-1.  **Exclusions Filtering**: Filters out resource requests (`favicon.ico`, `robots.txt`) early to avoid database lookups.
+1.  **Exclusions & Format Filtering**: Filters out common search engine / asset files (`favicon.ico`, `robots.txt`) and runs an early regular expression format verification (`/^[a-zA-Z0-9_-]+$/`) to reject malformed paths instantly without hitting the database.
 2.  **Asynchronous Analytics Increment**:
-    When a valid slug is matched, the redirection engine fires an asynchronous update to MongoDB to log the click, immediately returning the HTTP redirect header to the client.
+    When a valid slug matches, the redirection engine schedules the click analytics tracking task asynchronously using the stable Next.js 15 `after()` scheduler, immediately returning the HTTP 302 redirect header to the client for optimal page latency.
     ```javascript
-    await collection.updateOne(
-      { _id: doc._id },
-      { $inc: { clicks: 1 } }
-    );
-    return Response.redirect(doc.url, 302);
+    after(async () => {
+      // Async database write that does not block redirect latency
+      await executeDbWithRetry(async (db) => {
+        await db.collection("url").updateOne({ _id: doc._id }, { $inc: { clicks: 1 } });
+      });
+    });
+    return NextResponse.redirect(doc.url, 302);
     ```
-3.  **Graceful 404 Fallback**: If the alias is missing, the backend generates and returns a complete, static HTML 404 block styled with a premium glassmorphic interface and a clean dark theme.
+3.  **Graceful 404 Fallback**: If the alias is missing or invalid, the backend returns a 404 response with a custom glassmorphism HTML structure.
 
 ---
 

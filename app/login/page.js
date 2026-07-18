@@ -38,8 +38,18 @@ const Login = () => {
           window.dispatchEvent(new Event("auth-change"));
         }
         setMessage("Login successful! Redirecting...");
+        
+        let targetUrl = "/dashboard";
+        if (typeof window !== "undefined") {
+          const params = new URLSearchParams(window.location.search);
+          const callback = params.get("callbackUrl");
+          if (callback && callback.startsWith("/")) {
+            targetUrl = callback;
+          }
+        }
+
         setTimeout(() => {
-          window.location.href = "/dashboard";
+          window.location.href = targetUrl;
         }, 1200);
       } else {
         setMessage(data.message || "Login failed");
@@ -83,12 +93,13 @@ const Login = () => {
             
             {/* Email Address */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">
+              <label htmlFor="login-email" className="block text-xs font-bold text-gray-400 uppercase tracking-wider">
                 Email address
               </label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-600 h-4 w-4" />
                 <input
+                  id="login-email"
                   name="email"
                   type="email"
                   required
@@ -102,7 +113,7 @@ const Login = () => {
             {/* Password */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">
+                <label htmlFor="login-password" className="block text-xs font-bold text-gray-400 uppercase tracking-wider">
                   Password
                 </label>
                 <a href="#" className="text-xs font-semibold text-purple-400 hover:text-purple-300">
@@ -112,6 +123,7 @@ const Login = () => {
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-600 h-4 w-4" />
                 <input
+                  id="login-password"
                   name="password"
                   type={showPassword ? "text" : "password"}
                   required

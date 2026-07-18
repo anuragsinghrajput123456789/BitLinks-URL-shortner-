@@ -13,7 +13,27 @@ const Page = () => {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [qrLoading, setQrLoading] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState("");
   const [host, setHost] = useState("bitlinks.io");
+
+  // Local QR Code Generator
+  useEffect(() => {
+    if (!generated) {
+      setQrDataUrl("");
+      return;
+    }
+    // Generate displayed QR Code at 300x300 locally
+    import("qrcode").then((qr) => {
+      qr.toDataURL(generated, { width: 300, margin: 2, errorCorrectionLevel: "M" })
+        .then((urlData) => {
+          setQrDataUrl(urlData);
+        })
+        .catch((err) => {
+          console.error("Failed to generate local QR Code:", err);
+          toast.error("Failed to render QR Code.");
+        });
+    });
+  }, [generated]);
 
   useEffect(() => {
     if (process.env.APP_URL) {
@@ -121,7 +141,7 @@ const Page = () => {
         }
       }
     } catch (error) {
-      console.error(error);
+      console.error("[POST /api/generate Client] [ERROR] Failed to generate short URL:", error);
       toast.error("Could not connect to the server. Please check your connection.");
     } finally {
       setLoading(false);
@@ -143,22 +163,22 @@ const Page = () => {
   const downloadQR = async () => {
     setQrLoading(true);
     try {
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-        generated
-      )}`;
-      const response = await fetch(qrUrl);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
+      const qr = await import("qrcode");
+      // Generate a high-resolution (1000x1000) QR Code locally for download
+      const highResDataUrl = await qr.toDataURL(generated, {
+        width: 1000,
+        margin: 2,
+        errorCorrectionLevel: "H",
+      });
       const a = document.createElement("a");
-      a.href = blobUrl;
+      a.href = highResDataUrl;
       a.download = `qrcode-${shorturl || "alias"}.png`;
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(blobUrl);
-      toast.success("QR Code downloaded successfully! 📲");
+      toast.success("High-resolution QR Code downloaded! 📲");
     } catch (err) {
-      console.error("Failed to download QR code", err);
+      console.error("Failed to download QR code:", err);
       toast.error("QR Code download failed.");
     } finally {
       setQrLoading(false);
@@ -191,10 +211,11 @@ const Page = () => {
 
         <form onSubmit={generate} className="space-y-6">
           <div className="space-y-2">
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">
+            <label htmlFor="original-url" className="block text-xs font-bold text-gray-400 uppercase tracking-wider">
               Original URL
             </label>
             <input
+              id="original-url"
               value={url}
               onChange={handleUrlChange}
               className="w-full p-4 rounded-xl bg-slate-900/60 border border-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm transition-all duration-300"
@@ -205,7 +226,7 @@ const Page = () => {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">
+            <label htmlFor="custom-short-path" className="block text-xs font-bold text-gray-400 uppercase tracking-wider">
               Custom Short Path
             </label>
             <div className="flex items-center w-full bg-slate-900/60 border border-slate-800 rounded-xl focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-transparent transition-all duration-300 overflow-hidden">
@@ -213,6 +234,7 @@ const Page = () => {
                 {host}/
               </span>
               <input
+                id="custom-short-path"
                 value={shorturl}
                 onChange={(e) => setShorturl(e.target.value)}
                 className="w-full pl-1 pr-4 py-4 bg-transparent border-none focus:outline-none text-sm font-mono text-gray-100 placeholder-slate-500"
@@ -278,18 +300,22 @@ const Page = () => {
               {/* QR Code Segment */}
               <div className="flex flex-col items-center justify-center pt-4 border-t border-slate-900 gap-4">
                 <div className="bg-white p-3 rounded-2xl shadow-xl flex items-center justify-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
-                      generated
-                    )}`}
-                    alt="QR Code"
-                    className="h-[150px] w-[150px]"
-                  />
+                  {qrDataUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={qrDataUrl}
+                      alt="QR Code"
+                      className="h-[150px] w-[150px]"
+                    />
+                  ) : (
+                    <div className="h-[150px] w-[150px] flex items-center justify-center bg-slate-900 rounded-xl">
+                      <Loader2 className="animate-spin h-6 w-6 text-purple-500" />
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={downloadQR}
-                  disabled={qrLoading}
+                  disabled={qrLoading || !qrDataUrl}
                   className="flex items-center gap-2 text-xs font-bold bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-gray-300 hover:text-white px-5 py-2.5 rounded-xl transition-all cursor-pointer"
                 >
                   {qrLoading ? (

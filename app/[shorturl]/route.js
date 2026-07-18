@@ -1,4 +1,5 @@
-import clientPromise from "@/lib/mongoDB";
+import clientPromise, { executeDbWithRetry } from "@/lib/mongoDB";
+import { after } from "next/server";
 
 export async function GET(request, { params }) {
   const { shorturl } = await params;
@@ -8,30 +9,74 @@ export async function GET(request, { params }) {
     return new Response(null, { status: 404 });
   }
 
-  try {
-    const client = await clientPromise;
-    const db = client.db("bitlinks");
-    const collection = db.collection("url");
+  // Early parameter validation: Only query database if the slug is valid format (alphanumeric, dashes, underscores)
+  const aliasRegex = /^[a-zA-Z0-9_-]+$/;
+  if (!aliasRegex.test(shorturl)) {
+    return new Response(getNotFoundHtml(), {
+      status: 404,
+      headers: { "Content-Type": "text/html" },
+    });
+  }
 
-    // Find custom alias
-    const doc = await collection.findOne({ shorturl });
+  const userAgent = request.headers.get("user-agent") || "";
+  
+  // 1. Detect if request is a browser prefetch (we skip counting prefetch requests)
+  const isPrefetch = request.headers.get("purpose") === "prefetch" || 
+                     request.headers.get("x-purpose") === "prefetch" || 
+                     request.headers.get("x-moz") === "prefetch";
+
+  // 2. Detect if request User-Agent matches common scraper bots, crawlers, or link previews
+  const isBot = /bot|crawler|spider|crawling|fetcher|slack|whatsapp|facebook|twitter|telegram|preview|discord|ping/i.test(userAgent);
+
+  const shouldCountClick = !isPrefetch && !isBot;
+
+  try {
+    const doc = await executeDbWithRetry(async (client) => {
+      const db = client.db("bitlinks");
+      const collection = db.collection("url");
+      return await collection.findOne({ shorturl }, { projection: { url: 1 } });
+    });
 
     if (doc) {
-      // Increment click count (analytics)
-      try {
-        await collection.updateOne(
-          { _id: doc._id },
-          { $inc: { clicks: 1 } }
-        );
-      } catch (clickErr) {
-        console.error("Failed to increment click counter:", clickErr);
+      if (shouldCountClick) {
+        // Increment click count (analytics) in a non-blocking background task
+        try {
+          after(async () => {
+            try {
+              await executeDbWithRetry(async (client) => {
+                const db = client.db("bitlinks");
+                const collection = db.collection("url");
+                await collection.updateOne(
+                  { _id: doc._id },
+                  { $inc: { clicks: 1 } }
+                );
+              });
+            } catch (clickErr) {
+              console.error("[GET /[shorturl]] [ERROR] Failed to increment click counter in background:", clickErr);
+            }
+          });
+        } catch (afterErr) {
+          // Fallback: If after() is not supported/configured, run synchronously
+          try {
+            await executeDbWithRetry(async (client) => {
+              const db = client.db("bitlinks");
+              const collection = db.collection("url");
+              await collection.updateOne(
+                { _id: doc._id },
+                { $inc: { clicks: 1 } }
+              );
+            });
+          } catch (clickErr) {
+            console.error("[GET /[shorturl]] [ERROR] Failed to increment click counter synchronously:", clickErr);
+          }
+        }
       }
 
       // Perform HTTP 302 redirect
       return Response.redirect(doc.url, 302);
     }
   } catch (error) {
-    console.error("Error in shorturl redirect route:", error);
+    console.error("[GET /[shorturl]] [ERROR] Error in shorturl redirect route:", error);
     return new Response(getErrorHtml("Server Error", "An internal error occurred while resolving your link."), {
       status: 500,
       headers: { "Content-Type": "text/html" },

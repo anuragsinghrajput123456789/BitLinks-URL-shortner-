@@ -36,9 +36,13 @@ const Navbar = () => {
     return () => window.removeEventListener("auth-change", handleAuthChange);
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (err) {
+      console.error("Server logout failed:", err);
+    }
     localStorage.removeItem("user");
-    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
     setUser(null);
     window.dispatchEvent(new Event("auth-change"));
     window.location.href = "/login";

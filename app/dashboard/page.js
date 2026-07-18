@@ -1,10 +1,10 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Copy, Check, Search, Calendar, BarChart2, MousePointerClick, TrendingUp, CalendarDays, ExternalLink, Plus, RefreshCw, AlertCircle
+  Copy, Check, Search, Calendar, BarChart2, MousePointerClick, TrendingUp, CalendarDays, ExternalLink, Plus, RefreshCw, AlertCircle, QrCode, Download, Loader2
 } from "lucide-react";
 import { toast } from "../../lib/toastState";
 import PageWrapper from "../components/PageWrapper";
@@ -15,14 +15,15 @@ const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("newest"); // newest, oldest, click_high, click_low
   const [copiedId, setCopiedId] = useState(null);
+  
+  // Pagination & QR states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [previewQrId, setPreviewQrId] = useState(null);
+  const [qrDataUrls, setQrDataUrls] = useState({});
+  
   const router = useRouter();
 
-  useEffect(() => {
-    fetchUrls();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const fetchUrls = async () => {
+  const fetchUrls = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/user/urls");
@@ -34,13 +35,18 @@ const Dashboard = () => {
         router.push("/login");
       }
     } catch (error) {
-      console.error(error);
+      console.error("Failed to load URLs:", error);
+      toast.error("Could not load URL history.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
-  const copyToClipboard = async (fullShortUrl, id) => {
+  useEffect(() => {
+    fetchUrls();
+  }, [fetchUrls]);
+
+  const copyToClipboard = useCallback(async (fullShortUrl, id) => {
     try {
       await navigator.clipboard.writeText(fullShortUrl);
       setCopiedId(id);
@@ -50,27 +56,89 @@ const Dashboard = () => {
       console.error("Failed to copy to clipboard:", err);
       toast.error("Failed to copy link.");
     }
-  };
+  }, []);
 
-  // Compute aggregate stats
-  const totalLinks = urls.length;
-  const totalClicks = urls.reduce((acc, curr) => acc + (curr.clicks || 0), 0);
-  const maxClicks = urls.length > 0 ? Math.max(...urls.map(u => u.clicks || 0)) : 0;
-  const mostPopular = urls.length > 0 ? [...urls].sort((a,b) => (b.clicks || 0) - (a.clicks || 0))[0] : null;
+  const toggleQrPreview = useCallback(async (id, fullShortUrl) => {
+    if (previewQrId === id) {
+      setPreviewQrId(null);
+      return;
+    }
 
-  // Filter and Sort URLs
-  const filteredUrls = urls
-    .filter(url => 
-      url.shorturl.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      url.url.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      if (sortBy === "newest") return new Date(b.createdAt) - new Date(a.createdAt);
-      if (sortBy === "oldest") return new Date(a.createdAt) - new Date(b.createdAt);
-      if (sortBy === "click_high") return (b.clicks || 0) - (a.clicks || 0);
-      if (sortBy === "click_low") return (a.clicks || 0) - (b.clicks || 0);
-      return 0;
-    });
+    setPreviewQrId(id);
+
+    // If QR code is already generated and cached, skip generation
+    if (qrDataUrls[id]) return;
+
+    try {
+      const qr = await import("qrcode");
+      const dataUrl = await qr.toDataURL(fullShortUrl, { width: 250, margin: 1, errorCorrectionLevel: "M" });
+      setQrDataUrls(prev => ({ ...prev, [id]: dataUrl }));
+    } catch (err) {
+      console.error("Failed to generate QR preview:", err);
+      toast.error("Failed to generate QR Code preview.");
+    }
+  }, [previewQrId, qrDataUrls]);
+
+  const downloadQrFromDashboard = useCallback(async (shorturl, fullShortUrl) => {
+    try {
+      const qr = await import("qrcode");
+      const highResDataUrl = await qr.toDataURL(fullShortUrl, {
+        width: 1000,
+        margin: 2,
+        errorCorrectionLevel: "H"
+      });
+      const a = document.createElement("a");
+      a.href = highResDataUrl;
+      a.download = `qrcode-${shorturl}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      toast.success("High-resolution QR Code downloaded! 📲");
+    } catch (err) {
+      console.error("Failed to download QR code from dashboard:", err);
+      toast.error("QR Code download failed.");
+    }
+  }, []);
+
+  // Compute aggregate stats (memoized to prevent redundant loops on re-renders)
+  const stats = useMemo(() => {
+    const totalLinks = urls.length;
+    const totalClicks = urls.reduce((acc, curr) => acc + (curr.clicks || 0), 0);
+    const maxClicks = urls.length > 0 ? Math.max(...urls.map(u => u.clicks || 0)) : 0;
+    const mostPopular = urls.length > 0 ? [...urls].sort((a, b) => (b.clicks || 0) - (a.clicks || 0))[0] : null;
+    return { totalLinks, totalClicks, maxClicks, mostPopular };
+  }, [urls]);
+
+  const { totalLinks, totalClicks, maxClicks, mostPopular } = stats;
+
+  // Filter and Sort URLs (memoized to prevent computation except when data actually changes)
+  const filteredUrls = useMemo(() => {
+    return urls
+      .filter(url => 
+        url.shorturl.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        url.url.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      .sort((a, b) => {
+        if (sortBy === "newest") return new Date(b.createdAt) - new Date(a.createdAt);
+        if (sortBy === "oldest") return new Date(a.createdAt) - new Date(b.createdAt);
+        if (sortBy === "click_high") return (b.clicks || 0) - (a.clicks || 0);
+        if (sortBy === "click_low") return (a.clicks || 0) - (b.clicks || 0);
+        return 0;
+      });
+  }, [urls, searchTerm, sortBy]);
+
+  // Pagination calculations
+  const itemsPerPage = 8;
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortBy]);
+
+  const totalPages = Math.ceil(filteredUrls.length / itemsPerPage);
+
+  const paginatedUrls = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredUrls.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredUrls, currentPage]);
 
   if (loading) {
     return (
@@ -174,6 +242,7 @@ const Dashboard = () => {
                 placeholder="Search custom alias or URL..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="Search short URLs or destination URLs"
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm text-gray-200 transition-all"
               />
             </div>
@@ -206,7 +275,7 @@ const Dashboard = () => {
               </div>
             ) : (
               <ul className="divide-y divide-slate-900/60">
-                {filteredUrls.map((url, index) => {
+                {paginatedUrls.map((url, index) => {
                   const clickPercentage = maxClicks > 0 ? ((url.clicks || 0) / maxClicks) * 100 : 0;
                   return (
                     <motion.li
@@ -245,7 +314,7 @@ const Dashboard = () => {
                         </div>
 
                         {/* Stats & Actions */}
-                        <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end">
+                        <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
                           
                           {/* Metrics */}
                           <div className="flex flex-col sm:items-end">
@@ -263,32 +332,113 @@ const Dashboard = () => {
 
                           <div className="h-6 w-[1px] bg-slate-900 hidden sm:block" />
 
-                          {/* Quick Copy Action */}
-                          <button
-                            onClick={() => copyToClipboard(url.fullShortUrl, url._id)}
-                            className="flex items-center gap-1.5 text-xs font-bold bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-gray-300 hover:text-white px-3.5 py-2 rounded-xl transition-all cursor-pointer"
-                          >
-                            {copiedId === url._id ? (
-                              <>
-                                <Check className="h-3.5 w-3.5 text-green-400" />
-                                Copied
-                              </>
-                            ) : (
-                              <>
-                                <Copy className="h-3.5 w-3.5" />
-                                Copy
-                              </>
-                            )}
-                          </button>
+                          {/* Action Group */}
+                          <div className="flex items-center gap-2">
+                            {/* QR Code Trigger Button */}
+                            <button
+                              onClick={() => toggleQrPreview(url._id, url.fullShortUrl)}
+                              className={`flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl transition-all cursor-pointer border ${
+                                previewQrId === url._id
+                                  ? "bg-purple-600 border-purple-500 text-white"
+                                  : "bg-slate-900 hover:bg-slate-800 border-slate-800 hover:border-slate-700 text-gray-300 hover:text-white"
+                              }`}
+                              title="Show QR Code"
+                            >
+                              <QrCode className="h-3.5 w-3.5" />
+                              {previewQrId === url._id ? "Close QR" : "QR Code"}
+                            </button>
+
+                            {/* Quick Copy Action */}
+                            <button
+                              onClick={() => copyToClipboard(url.fullShortUrl, url._id)}
+                              className="flex items-center gap-1.5 text-xs font-bold bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-gray-300 hover:text-white px-3.5 py-2 rounded-xl transition-all cursor-pointer"
+                            >
+                              {copiedId === url._id ? (
+                                <>
+                                  <Check className="h-3.5 w-3.5 text-green-400" />
+                                  Copied
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-3.5 w-3.5" />
+                                  Copy
+                                </>
+                              )}
+                            </button>
+                          </div>
+
                         </div>
 
                       </div>
+
+                      {/* Expandable local QR Preview Drawer */}
+                      <AnimatePresence>
+                        {previewQrId === url._id && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="mt-4 pt-4 border-t border-slate-900 flex flex-col sm:flex-row items-center gap-6 bg-slate-950/40 p-4 rounded-2xl border border-purple-500/10"
+                          >
+                            <div className="bg-white p-2 rounded-xl shadow-lg shrink-0 flex items-center justify-center">
+                              {qrDataUrls[url._id] ? (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img
+                                  src={qrDataUrls[url._id]}
+                                  alt="QR Code"
+                                  className="h-[120px] w-[120px]"
+                                />
+                              ) : (
+                                <div className="h-[120px] w-[120px] flex items-center justify-center bg-slate-900 rounded-xl">
+                                  <Loader2 className="animate-spin h-5 w-5 text-purple-500" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="space-y-3 text-center sm:text-left">
+                              <p className="text-xs font-semibold text-gray-300">
+                                Scan this code with a mobile device to follow the link instantly.
+                              </p>
+                              <button
+                                onClick={() => downloadQrFromDashboard(url.shorturl, url.fullShortUrl)}
+                                className="inline-flex items-center gap-1.5 text-xs font-bold bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/30 text-purple-400 hover:text-purple-300 px-4 py-2 rounded-xl transition-all cursor-pointer"
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                                Download High-Res (1000x1000)
+                              </button>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
                     </motion.li>
                   );
                 })}
               </ul>
             )}
           </div>
+          
+          {/* Pagination Footer Controls */}
+          {totalPages > 1 && (
+            <div className="p-5 border-t border-slate-900/60 bg-slate-950/20 flex items-center justify-between gap-4">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                className="px-4 py-2 rounded-xl border border-slate-800 bg-slate-900/50 hover:bg-slate-900 text-xs font-bold text-gray-300 hover:text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Previous
+              </button>
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                className="px-4 py-2 rounded-xl border border-slate-800 bg-slate-900/50 hover:bg-slate-900 text-xs font-bold text-gray-300 hover:text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
 
       </div>
