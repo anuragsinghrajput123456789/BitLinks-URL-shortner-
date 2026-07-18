@@ -8,7 +8,6 @@ import { Link2, LayoutDashboard, LogOut, LogIn, UserPlus, Menu, X } from "lucide
 const NAV_LINKS = [
   { name: "Home", href: "/" },
   { name: "About", href: "/about" },
-  { name: "Contact", href: "/contact" },
   { name: "Shorten", href: "/shorten" },
 ];
 

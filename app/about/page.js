@@ -2,7 +2,7 @@
 import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Bolt, BarChart2, Shield, Link2, Sparkles, ArrowUpRight, Compass, Users, CheckCircle, Github, Linkedin } from "lucide-react";
+import { Bolt, BarChart2, Shield, Link2, Sparkles, Compass, Users, CheckCircle, Github, Linkedin } from "lucide-react";
 import PageWrapper from "../components/PageWrapper";
 
 const NetworkSvg = () => (
@@ -224,12 +224,6 @@ const AboutPage = () => {
               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold px-8 py-3 rounded-xl shadow-lg shadow-purple-500/20 hover:scale-105 transition-all duration-300"
             >
               Get Started Free
-            </Link>
-            <Link
-              href="/contact"
-              className="flex items-center justify-center gap-1 bg-slate-900 border border-slate-800 hover:border-slate-700 text-gray-300 hover:text-white font-bold px-8 py-3 rounded-xl transition-all duration-300"
-            >
-              Contact Support <ArrowUpRight className="h-4 w-4" />
             </Link>
           </div>
         </motion.section>

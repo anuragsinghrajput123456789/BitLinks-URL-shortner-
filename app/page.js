@@ -114,7 +114,7 @@ export default function Home() {
                 Advanced Creator Panel
               </Link>
               <a
-                href="https://github.com"
+                href="https://github.com/anuragsinghrajput123456789/BitLinks-URL-shortner-"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 bg-slate-900 border border-slate-800 hover:border-slate-600 text-gray-300 hover:text-white font-semibold px-8 py-4 rounded-2xl transition-all duration-300"
