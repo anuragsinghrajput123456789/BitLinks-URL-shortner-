@@ -34,10 +34,26 @@ export async function GET(request, { params }) {
     const doc = await executeDbWithRetry(async (client) => {
       const db = client.db("bitlinks");
       const collection = db.collection("url");
-      return await collection.findOne({ shorturl }, { projection: { url: 1 } });
+      return await collection.findOne({ shorturl }, { projection: { url: 1, isActive: 1, expiresAt: 1 } });
     });
 
     if (doc) {
+      // Check active status
+      if (doc.isActive === false) {
+        return new Response(getErrorHtml("Link Suspended", "This shortened link has been deactivated by its owner."), {
+          status: 403,
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+
+      // Check expiration status
+      if (doc.expiresAt && new Date() > new Date(doc.expiresAt)) {
+        return new Response(getErrorHtml("Link Expired", "This link is no longer active as it has passed its expiration date."), {
+          status: 410,
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+
       if (shouldCountClick) {
         // Increment click count (analytics) in a non-blocking background task
         try {

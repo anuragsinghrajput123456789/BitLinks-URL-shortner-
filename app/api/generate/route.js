@@ -20,7 +20,7 @@ export async function POST(request) {
       );
     }
 
-    const { url, shorturl } = body;
+    const { url, shorturl, description, expiresAt, tags } = body;
 
     // 2. Validate existence and type of destination URL
     if (!url || typeof url !== "string") {
@@ -43,6 +43,20 @@ export async function POST(request) {
         },
         { status: 400 }
       );
+    }
+
+    // 2.1 Sanitize optional fields
+    const finalDescription = (typeof description === "string") ? description.trim() : "";
+    let finalExpiresAt = null;
+    if (expiresAt) {
+      const parsedDate = new Date(expiresAt);
+      if (!isNaN(parsedDate.getTime())) {
+        finalExpiresAt = parsedDate;
+      }
+    }
+    let finalTags = [];
+    if (Array.isArray(tags)) {
+      finalTags = tags.map(t => typeof t === "string" ? t.trim() : "").filter(Boolean);
     }
 
     // Enforce URL length constraint (standard limit to avoid DB overflow or buffer exploits)
@@ -214,6 +228,10 @@ export async function POST(request) {
             userId,
             clicks: 0,
             createdAt: new Date(),
+            description: finalDescription,
+            expiresAt: finalExpiresAt,
+            tags: finalTags,
+            isActive: true,
           });
         });
         success = true;
@@ -258,6 +276,10 @@ export async function POST(request) {
               userId,
               clicks: 0,
               createdAt: new Date(),
+              description: finalDescription,
+              expiresAt: finalExpiresAt,
+              tags: finalTags,
+              isActive: true,
             });
             return { collision: false };
           }, 2, 200);
