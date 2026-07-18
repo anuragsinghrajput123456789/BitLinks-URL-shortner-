@@ -142,12 +142,14 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-slate-950 text-gray-100">
-        <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-          <span className="text-sm font-bold text-gray-500 uppercase tracking-widest animate-pulse">Loading Panel...</span>
+      <PageWrapper>
+        <div className="flex justify-center items-center min-h-[70vh] bg-slate-950 text-gray-100">
+          <div className="flex flex-col items-center gap-3">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+            <span className="text-sm font-bold text-gray-500 uppercase tracking-widest animate-pulse">Loading Panel...</span>
+          </div>
         </div>
-      </div>
+      </PageWrapper>
     );
   }
 

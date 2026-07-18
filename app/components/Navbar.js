@@ -1,9 +1,16 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link2, LayoutDashboard, LogOut, LogIn, UserPlus, Menu, X } from "lucide-react";
+
+const NAV_LINKS = [
+  { name: "Home", href: "/" },
+  { name: "About", href: "/about" },
+  { name: "Contact", href: "/contact" },
+  { name: "Shorten", href: "/shorten" },
+];
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -36,7 +43,7 @@ const Navbar = () => {
     return () => window.removeEventListener("auth-change", handleAuthChange);
   }, []);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
     } catch (err) {
@@ -46,14 +53,7 @@ const Navbar = () => {
     setUser(null);
     window.dispatchEvent(new Event("auth-change"));
     window.location.href = "/login";
-  };
-
-  const navLinks = [
-    { name: "Home", href: "/" },
-    { name: "About", href: "/about" },
-    { name: "Contact", href: "/contact" },
-    { name: "Shorten", href: "/shorten" },
-  ];
+  }, []);
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-purple-500/20 bg-slate-950/70 backdrop-blur-md text-white shadow-xl transition-all duration-300">
@@ -75,7 +75,7 @@ const Navbar = () => {
 
         {/* Desktop Navigation */}
         <ul className="hidden items-center gap-8 md:flex">
-          {navLinks.map((link) => {
+          {NAV_LINKS.map((link) => {
             const isActive = pathname === link.href;
             return (
               <li key={link.name} className="relative">
@@ -163,7 +163,7 @@ const Navbar = () => {
             className="md:hidden border-t border-slate-900 bg-slate-950/95 backdrop-blur-lg overflow-hidden"
           >
             <div className="px-4 py-6 space-y-4">
-              {navLinks.map((link) => {
+              {NAV_LINKS.map((link) => {
                 const isActive = pathname === link.href;
                 return (
                   <Link

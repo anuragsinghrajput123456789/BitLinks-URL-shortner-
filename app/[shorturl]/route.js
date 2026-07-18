@@ -1,5 +1,5 @@
 import clientPromise, { executeDbWithRetry } from "@/lib/mongoDB";
-import { after } from "next/server";
+import { after, NextResponse } from "next/server";
 
 export async function GET(request, { params }) {
   const { shorturl } = await params;
@@ -73,7 +73,7 @@ export async function GET(request, { params }) {
       }
 
       // Perform HTTP 302 redirect
-      return Response.redirect(doc.url, 302);
+      return NextResponse.redirect(doc.url, 302);
     }
   } catch (error) {
     console.error("[GET /[shorturl]] [ERROR] Error in shorturl redirect route:", error);
@@ -97,40 +97,148 @@ function getNotFoundHtml() {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Link Not Found - BitLinks</title>
-  <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #030014;
+      color: #f3f4f6;
+      padding: 1rem;
+      overflow: hidden;
+      position: relative;
+    }
     .grid-bg {
+      position: absolute;
+      inset: 0;
       background-image: radial-gradient(circle at 1px 1px, rgba(168, 85, 247, 0.07) 1px, transparent 0);
       background-size: 24px 24px;
+      z-index: -20;
+    }
+    .blob {
+      position: absolute;
+      border-radius: 9999px;
+      filter: blur(90px);
+      z-index: -10;
+      opacity: 0.6;
+    }
+    .blob-purple {
+      top: 20%;
+      left: 20%;
+      width: 20rem;
+      height: 20rem;
+      background-color: rgba(147, 51, 234, 0.06);
+    }
+    .blob-pink {
+      bottom: 20%;
+      right: 20%;
+      width: 22rem;
+      height: 22rem;
+      background-color: rgba(219, 39, 119, 0.06);
+    }
+    .card {
+      width: 100%;
+      max-w: 28rem;
+      background-color: rgba(10, 7, 27, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 1.5rem;
+      padding: 2.5rem;
+      border: 1px solid rgba(168, 85, 247, 0.15);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      text-align: center;
+      position: relative;
+    }
+    .icon-container {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 4rem;
+      width: 4rem;
+      background: linear-gradient(to top right, #9333ea, #db2777);
+      border-radius: 1rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 10px 15px -3px rgba(168, 85, 247, 0.3);
+    }
+    .heading-404 {
+      font-size: 4.5rem;
+      font-weight: 900;
+      background: linear-gradient(to right, #c084fc, #f472b6);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.35));
+      line-height: 1;
+    }
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-top: 1rem;
+      color: #ffffff;
+    }
+    p {
+      margin-top: 0.5rem;
+      font-size: 0.875rem;
+      color: #9ca3af;
+      line-height: 1.625;
+    }
+    .button-container {
+      margin-top: 2rem;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      background: linear-gradient(to right, #9333ea, #db2777);
+      color: #ffffff;
+      font-weight: 700;
+      padding: 0.875rem 1.5rem;
+      border-radius: 0.75rem;
+      text-decoration: none;
+      box-shadow: 0 10px 15px -3px rgba(147, 51, 234, 0.2);
+      transition: all 0.2s ease-in-out;
+    }
+    .btn:hover {
+      transform: scale(1.03);
+      filter: brightness(1.1);
+    }
+    .icon {
+      height: 1rem;
+      width: 1rem;
+      fill: none;
+      stroke: currentColor;
     }
   </style>
 </head>
-<body class="min-h-screen flex items-center justify-center bg-slate-950 text-gray-100 grid-bg px-4">
-  <!-- Ambient glow backdrops -->
-  <div class="absolute top-[20%] left-[20%] w-[20rem] h-[20rem] bg-purple-600/5 rounded-full blur-3xl -z-10"></div>
-  <div class="absolute bottom-[20%] right-[20%] w-[22rem] h-[22rem] bg-pink-600/5 rounded-full blur-3xl -z-10"></div>
+<body>
+  <div class="grid-bg"></div>
+  <div class="blob blob-purple"></div>
+  <div class="blob blob-pink"></div>
 
-  <div class="w-full max-w-md bg-slate-900/40 backdrop-blur-md rounded-3xl p-8 sm:p-12 border border-purple-500/20 shadow-2xl text-center relative">
-    <div class="flex justify-center mb-6">
-      <div class="h-16 w-16 bg-gradient-to-tr from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/20">
-        <svg class="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
-        </svg>
-      </div>
+  <div class="card">
+    <div class="icon-container">
+      <svg class="icon" style="height:2rem; width:2rem;" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+      </svg>
     </div>
 
-    <h1 class="text-7xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent filter drop-shadow-[0_0_20px_rgba(168,85,247,0.35)]">
-      404
-    </h1>
-    <h2 class="text-2xl font-bold mt-4 text-white">Short Link Not Found</h2>
-    <p class="mt-2 text-sm text-gray-400 leading-relaxed">
-      The link you followed has expired, been removed, or was never generated.
-    </p>
+    <h1 class="heading-404">404</h1>
+    <h2>Short Link Not Found</h2>
+    <p>The link you followed has expired, been removed, or was never generated.</p>
 
-    <div class="mt-8">
-      <a href="/" class="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-purple-500/20 transition-all hover:scale-105">
-        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+    <div class="button-container">
+      <a href="/" class="btn">
+        <svg class="icon" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
         </svg>
         Return Home
       </a>
@@ -147,22 +255,89 @@ function getErrorHtml(title, description) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title} - BitLinks</title>
-  <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #030014;
+      color: #f3f4f6;
+      padding: 1rem;
+      overflow: hidden;
+      position: relative;
+    }
     .grid-bg {
+      position: absolute;
+      inset: 0;
       background-image: radial-gradient(circle at 1px 1px, rgba(168, 85, 247, 0.07) 1px, transparent 0);
       background-size: 24px 24px;
+      z-index: -20;
+    }
+    .card {
+      width: 100%;
+      max-w: 28rem;
+      background-color: rgba(10, 7, 27, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 1.5rem;
+      padding: 2.5rem;
+      border: 1px solid rgba(168, 85, 247, 0.15);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      text-align: center;
+      position: relative;
+    }
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 900;
+      background: linear-gradient(to right, #f87171, #f43f5e);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      line-height: 1.2;
+    }
+    p {
+      margin-top: 1rem;
+      font-size: 0.875rem;
+      color: #9ca3af;
+      line-height: 1.625;
+    }
+    .button-container {
+      margin-top: 2rem;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      background: linear-gradient(to right, #9333ea, #db2777);
+      color: #ffffff;
+      font-weight: 700;
+      padding: 0.875rem 1.5rem;
+      border-radius: 0.75rem;
+      text-decoration: none;
+      box-shadow: 0 10px 15px -3px rgba(147, 51, 234, 0.2);
+      transition: all 0.2s ease-in-out;
+    }
+    .btn:hover {
+      transform: scale(1.03);
+      filter: brightness(1.1);
     }
   </style>
 </head>
-<body class="min-h-screen flex items-center justify-center bg-slate-950 text-gray-100 grid-bg px-4">
-  <div class="w-full max-w-md bg-slate-900/40 backdrop-blur-md rounded-3xl p-8 sm:p-12 border border-purple-500/20 shadow-2xl text-center relative">
-    <h1 class="text-4xl font-black bg-gradient-to-r from-red-400 to-rose-450 bg-clip-text text-transparent">${title}</h1>
-    <p class="mt-4 text-sm text-gray-400 leading-relaxed">${description}</p>
-    <div class="mt-8">
-      <a href="/" class="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-purple-500/20 transition-all hover:scale-105">
-        Return Home
-      </a>
+<body>
+  <div class="grid-bg"></div>
+  <div class="card">
+    <h1>${title}</h1>
+    <p>${description}</p>
+    <div class="button-container">
+      <a href="/" class="btn">Return Home</a>
     </div>
   </div>
 </body>

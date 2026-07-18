@@ -203,38 +203,7 @@ export async function POST(request) {
     let success = false;
 
     if (isCustomAlias) {
-      // First, check if custom alias is already taken
-      let existing = null;
-      try {
-        existing = await executeDbWithRetry(async (client) => {
-          const db = client.db("bitlinks");
-          const collection = db.collection("url");
-          return await collection.findOne({ shorturl: trimmedShorturl }, { projection: { _id: 1 } });
-        });
-      } catch (dbErr) {
-        console.error("[POST /api/generate] [ERROR] Database connection failure:", dbErr);
-        return NextResponse.json(
-          {
-            success: false,
-            error: true,
-            message: "Failed to connect to the database. Please try again later.",
-          },
-          { status: 503 }
-        );
-      }
-
-      if (existing) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: true,
-            message: "Short URL already exists!",
-          },
-          { status: 409 }
-        );
-      }
-
-      // Try inserting the custom alias
+      // Try inserting the custom alias directly. The unique index (unique_shorturl_alias) handles duplicates instantly.
       try {
         await executeDbWithRetry(async (client) => {
           const db = client.db("bitlinks");

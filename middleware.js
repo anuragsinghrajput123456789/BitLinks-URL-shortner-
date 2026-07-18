@@ -131,45 +131,52 @@ export async function middleware(request) {
     }
   }
 
-  const tokenCookie = request.cookies.get("token");
-  const token = tokenCookie?.value;
-  const secret = process.env.JWT_SECRET;
+  // Only verify JWT token for routes that require session protection or redirect logic
+  const needsAuth = pathname.startsWith("/dashboard") || 
+                    pathname.startsWith("/login") || 
+                    pathname.startsWith("/signup");
 
-  // Fail-secure validation: crash cleanly on missing JWT_SECRET rather than fallback to an insecure default
-  if (!secret) {
-    console.error("CRITICAL CONFIGURATION ERROR: process.env.JWT_SECRET is missing.");
-    if (pathname.startsWith("/api/")) {
+  if (needsAuth) {
+    const tokenCookie = request.cookies.get("token");
+    const token = tokenCookie?.value;
+    const secret = process.env.JWT_SECRET;
+
+    // Fail-secure validation: crash cleanly on missing JWT_SECRET rather than fallback to an insecure default
+    if (!secret) {
+      console.error("CRITICAL CONFIGURATION ERROR: process.env.JWT_SECRET is missing.");
+      if (pathname.startsWith("/api/")) {
+        return new NextResponse(
+          JSON.stringify({
+            success: false,
+            error: true,
+            message: "Server configuration issue. Authentication is unavailable.",
+          }),
+          { status: 500, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      // For visual routes, return generic internal server error
       return new NextResponse(
-        JSON.stringify({
-          success: false,
-          error: true,
-          message: "Server configuration issue. Authentication is unavailable.",
-        }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        "<h1>500 Internal Server Error</h1><p>Auth is currently disabled due to server misconfiguration.</p>",
+        { status: 500, headers: { "Content-Type": "text/html" } }
       );
     }
-    // For visual routes, return generic internal server error
-    return new NextResponse(
-      "<h1>500 Internal Server Error</h1><p>Auth is currently disabled due to server misconfiguration.</p>",
-      { status: 500, headers: { "Content-Type": "text/html" } }
-    );
-  }
 
-  const hasValidToken = token ? (await verifyJWT(token, secret) !== null) : false;
+    const hasValidToken = token ? (await verifyJWT(token, secret) !== null) : false;
 
-  // Protect /dashboard path: Redirect to login if user is not authenticated
-  if (pathname.startsWith("/dashboard")) {
-    if (!hasValidToken) {
-      const loginUrl = new URL("/login", request.url);
-      loginUrl.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(loginUrl);
+    // Protect /dashboard path: Redirect to login if user is not authenticated
+    if (pathname.startsWith("/dashboard")) {
+      if (!hasValidToken) {
+        const loginUrl = new URL("/login", request.url);
+        loginUrl.searchParams.set("callbackUrl", pathname);
+        return NextResponse.redirect(loginUrl);
+      }
     }
-  }
 
-  // Prevent logged-in users from seeing /login and /signup pages
-  if (pathname.startsWith("/login") || pathname.startsWith("/signup")) {
-    if (hasValidToken) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+    // Prevent logged-in users from seeing /login and /signup pages
+    if (pathname.startsWith("/login") || pathname.startsWith("/signup")) {
+      if (hasValidToken) {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
     }
   }
 

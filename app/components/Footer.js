@@ -3,8 +3,9 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Github, Twitter, Linkedin, Heart, Send, Sparkles } from "lucide-react";
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 const Footer = () => {
-  const currentYear = new Date().getFullYear();
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
 
@@ -114,7 +115,7 @@ const Footer = () => {
         {/* Bottom Bar: Copyright */}
         <div className="pt-8 border-t border-slate-900 flex flex-col sm:flex-row justify-between items-center gap-6">
           <p className="text-sm text-center sm:text-left text-gray-500">
-            &copy; {currentYear} BitLinks. All rights reserved.
+            &copy; {CURRENT_YEAR} BitLinks. All rights reserved.
           </p>
           <p className="text-sm flex items-center gap-1.5 text-gray-500">
             Made with <Heart className="h-4 w-4 text-pink-500 animate-pulse fill-pink-500" /> by <a href="mailto:anuragsinghj678@gmail.com" className="text-purple-400 hover:text-purple-300 transition-colors">Anurag Singh</a>

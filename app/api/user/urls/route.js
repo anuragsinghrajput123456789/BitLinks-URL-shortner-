@@ -69,8 +69,9 @@ export async function GET(request) {
         const db = client.db("bitlinks");
         const collection = db.collection("url");
         return await collection
-          .find({ userId: userId })
+          .find({ userId: userId }, { projection: { url: 1, shorturl: 1, clicks: 1, createdAt: 1 } })
           .sort({ createdAt: -1 })
+          .limit(100)
           .toArray();
       });
     } catch (dbErr) {
