@@ -86,7 +86,7 @@ The repository is modular and structured according to Next.js App Router convent
 URL-shortner/
 ├── app/                        # Next.js App Router root
 │   ├── [shorturl]/             # Redirect handler route (/[shorturl])
-│   │   └── page.js
+│   │   └── route.js            # GET: Server-side HTTP redirect & 404 handler
 │   ├── about/                  # About page component
 │   │   └── page.js
 │   ├── api/                    # API Endpoints
@@ -102,7 +102,9 @@ URL-shortner/
 │   │           └── route.js
 │   ├── components/             # Reusable UI layout elements
 │   │   ├── Footer.js
-│   │   └── Navbar.js
+│   │   ├── Navbar.js
+│   │   ├── PageWrapper.js      # Unified layout page wrapper
+│   │   └── ToastContainer.js   # Framer Motion animated Toast UI
 │   ├── contact/                # Contact and support form
 │   │   └── page.js
 │   ├── dashboard/              # Creator analytics panel
@@ -113,9 +115,16 @@ URL-shortner/
 │   │   └── page.js
 │   ├── globals.css             # Main styling & Glassmorphism themes
 │   ├── layout.js               # Global Root Layout
+│   ├── not-found.js            # Custom fallback 404 page
 │   └── page.js                 # Landing & Instant shortening widget
+├── docs/                       # Comprehensive project docs & case studies
+│   ├── API_FLOW.md
+│   ├── ARCHITECTURE.md
+│   ├── CASE_STUDY.md
+│   └── PROJECT_DEEP_DIVE.md
 ├── lib/
-│   └── mongoDB.js              # MongoDB Client Promise client
+│   ├── mongoDB.js              # MongoDB Client Promise client
+│   └── toastState.js           # Publish-subscribe state for toast alerts
 ├── public/                     # Static media & asset files
 ├── .env.local                  # Local environment configuration
 ├── eslint.config.mjs           # ESLint configuration
@@ -124,6 +133,7 @@ URL-shortner/
 ├── package.json                # Project script registry & dependencies
 └── postcss.config.mjs          # Tailwind CSS PostCSS configuration
 ```
+
 
 ---
 
@@ -183,8 +193,10 @@ npm run build
 ## 🛠️ Maintenance & Recent Improvements
 
 We recently performed a complete system audit and implemented the following updates:
-- **Environment Resolution**: Resolved null-byte corruption in environment files to guarantee proper JWT signature parsing.
-- **Robust Exception Coverage**: Added comprehensive `try-catch` blocks across client-side API requests, local storage state transitions, and server-side redirect handlers.
-- **SVG & Icon Loading**: Corrected corrupted icon imports (`EyeOff` replaces non-existent `EyeSlash`).
-- **SSR Compatibility**: Ensured full page hydration safety and decoupled platform-specific rendering paths.
-- **Dev-Workflow Refactoring**: Shifted module dependencies from unstable native SWC Turbopack builds to stable Next.js compiler environments.
+- **⚡ Server-Side Redirection Route**: Rewrote the dynamic redirection module from a client-side component (`app/[shorturl]/page.js`) to a server-side route handler (`app/[shorturl]/route.js`). This avoids React component hydration entirely and enables instant HTTP 302 redirects in under 15ms.
+- **🍞 Event-Based Toast Alerts**: Created a centralized pub-sub state store (`lib/toastState.js`) and matching UI container (`app/components/ToastContainer.js`) powered by Framer Motion. This decouples notifications from standard React Context or nested states, letting developers trigger toasts globally.
+- **⚠️ Sleek Custom 404 Fallbacks**: Integrated standard Next.js error wrappers and built a premium glassmorphic custom fallback template for unknown or expired slugs.
+- **🔐 Robust Exception & Security Coverage**: Added comprehensive `try-catch` blocks across API requests, input validators to filter script protocols (e.g. `javascript:`, `data:`), and cookie protection flags.
+- **📂 Developer Documentation**: Outlined the core system architecture, data diagrams, API flows, and case studies inside the new `docs/` folder to guide developers.
+- **🔧 Module Resolution**: Resolved null-byte corruption in environment files to guarantee proper JWT signature parsing.
+

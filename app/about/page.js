@@ -3,6 +3,7 @@ import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Bolt, BarChart2, Shield, Link2, Sparkles, ArrowUpRight, Compass, Users, CheckCircle, Github, Linkedin } from "lucide-react";
+import PageWrapper from "../components/PageWrapper";
 
 const NetworkSvg = () => (
   <svg className="w-full h-auto text-purple-500 max-w-md mx-auto drop-shadow-[0_0_20px_rgba(168,85,247,0.2)]" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -35,7 +36,8 @@ const NetworkSvg = () => (
 
 const AboutPage = () => {
   return (
-    <div className="bg-slate-950 text-gray-100 min-h-screen grid-bg py-20 px-4">
+    <PageWrapper>
+      <div className="bg-slate-950 text-gray-100 min-h-screen grid-bg py-20 px-4">
       {/* Backdrops */}
       <div className="absolute top-[10%] right-[10%] w-[25rem] h-[25rem] bg-purple-600/5 rounded-full blur-3xl -z-10 animate-blob" />
       <div className="absolute bottom-[20%] left-[10%] w-[30rem] h-[30rem] bg-cyan-600/5 rounded-full blur-3xl -z-10 animate-blob animation-delay-4000" />
@@ -174,7 +176,7 @@ const AboutPage = () => {
               <h3 className="text-2xl font-black text-white">Anurag Singh</h3>
               <p className="text-purple-400 text-sm font-semibold">Full Stack Developer & Systems Designer</p>
             </div>
-            <p className="text-gray-405 text-sm leading-relaxed max-w-md mx-auto">
+            <p className="text-gray-400 text-sm leading-relaxed max-w-md mx-auto">
               Building scalable, futuristic applications with elegant user interfaces and robust code. Connect with me for inquiries, collaboration, or system designs.
             </p>
             <div className="flex justify-center gap-4 pt-2">
@@ -234,6 +236,7 @@ const AboutPage = () => {
 
       </main>
     </div>
+    </PageWrapper>
   );
 };
 

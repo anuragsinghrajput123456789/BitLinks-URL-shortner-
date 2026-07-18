@@ -3,16 +3,13 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Rocket, Github, Sparkles, Flame, Bolt, Link2, Copy, Check, BarChart2, Shield, Eye, Trash2, ArrowRight
+  Rocket, Github, Sparkles, Flame, Bolt, Link2, Copy, Check, BarChart2, Shield, Eye, Trash2, ArrowRight,
+  Globe, TrendingUp
 } from "lucide-react";
+import { toast } from "../lib/toastState";
+import PageWrapper from "./components/PageWrapper";
 
 export default function Home() {
-  const [url, setUrl] = useState("");
-  const [shorturl, setShorturl] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [generatedUrl, setGeneratedUrl] = useState("");
-  const [copied, setCopied] = useState(false);
   const [recentLinks, setRecentLinks] = useState([]);
 
   // Load recent links from localStorage on mount
@@ -20,95 +17,43 @@ export default function Home() {
     const saved = localStorage.getItem("bitlinks_recent");
     if (saved) {
       try {
-        setRecentLinks(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          // Normalize and ensure all items have a unique id
+          const normalized = parsed.map((item, idx) => ({
+            ...item,
+            id: item.id || `recent-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
+          }));
+          setRecentLinks(normalized);
+          localStorage.setItem("bitlinks_recent", JSON.stringify(normalized));
+        } else {
+          localStorage.removeItem("bitlinks_recent");
+        }
       } catch (e) {
-        console.error("Failed to parse recent links");
+        console.error("Failed to parse recent links:", e);
       }
     }
   }, []);
 
-  // Auto-fill a random custom short URL if user starts typing a long URL but hasn't entered an alias
-  const handleUrlChange = (e) => {
-    const val = e.target.value;
-    setUrl(val);
-    if (val && !shorturl) {
-      // Generate a random 6-character string
-      const randomAlias = Math.random().toString(36).substring(2, 8);
-      setShorturl(randomAlias);
-    }
-  };
-
-  const handleShorten = async (e) => {
-    e.preventDefault();
-    if (!url || !shorturl) {
-      setMessage("Please enter a URL and an alias.");
-      return;
-    }
-
-    setLoading(true);
-    setMessage("");
-    setGeneratedUrl("");
-
-    try {
-      const response = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, shorturl }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        const fullShortUrl = `${
-          process.env.NEXT_PUBLIC_HOST || window.location.origin
-        }/${shorturl}`;
-        
-        setGeneratedUrl(fullShortUrl);
-        setMessage("Short link created! 🎉");
-
-        // Save to guest history in localStorage
-        const newLink = {
-          id: Date.now(),
-          original: url,
-          short: shorturl,
-          fullShort: fullShortUrl,
-          createdAt: new Date().toISOString(),
-        };
-
-        const updatedHistory = [newLink, ...recentLinks.slice(0, 4)];
-        setRecentLinks(updatedHistory);
-        localStorage.setItem("bitlinks_recent", JSON.stringify(updatedHistory));
-
-        setUrl("");
-        setShorturl("");
-      } else {
-        setMessage(result.message || "Something went wrong. Alias might be taken.");
-      }
-    } catch (error) {
-      console.error(error);
-      setMessage("Could not connect to the server.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCopy = async (text) => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      toast.success("Short link copied to clipboard! 📋");
     } catch (err) {
       console.error("Failed to copy to clipboard:", err);
+      toast.error("Failed to copy link.");
     }
   };
 
   const clearHistory = () => {
     localStorage.removeItem("bitlinks_recent");
     setRecentLinks([]);
+    toast.success("Recent guest session history cleared.");
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-950 text-gray-100 grid-bg pt-10 pb-20">
+    <PageWrapper>
+      <main className="relative min-h-screen overflow-hidden bg-slate-950 text-gray-100 grid-bg pt-10 pb-20">
       
       {/* 🌈 Floating Neon Blobs */}
       <div className="absolute inset-0 overflow-hidden -z-10">
@@ -180,117 +125,124 @@ export default function Home() {
             </motion.div>
           </div>
 
-          {/* Right Hero: Instant Shortener Form */}
-          <div className="lg:col-span-5 w-full flex justify-center">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="w-full max-w-md glass-panel rounded-3xl p-8 border border-purple-500/20 relative shadow-2xl"
-            >
-              <div className="absolute top-[-0.75rem] right-4 bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 text-xs font-black px-3.5 py-1 rounded-full shadow-lg flex items-center gap-1">
-                <Flame className="h-3 w-3 fill-slate-950" /> INSTANT WIDGET
-              </div>
+          {/* Right Hero: Animated Marketing Cards */}
+          <div className="lg:col-span-5 w-full relative h-[450px] flex items-center justify-center">
+            {/* Ambient Background Glow behind cards */}
+            <div className="absolute w-[20rem] h-[20rem] bg-purple-600/10 rounded-full blur-3xl -z-10 animate-pulse" />
+            <div className="absolute w-[18rem] h-[18rem] bg-pink-600/5 rounded-full blur-3xl -z-10" />
 
-              <h2 className="text-xl font-extrabold text-white mb-6 flex items-center gap-2">
-                <Link2 className="h-5 w-5 text-purple-400" />
-                Create a Short Link
-              </h2>
-
-              <form onSubmit={handleShorten} className="space-y-5">
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                    Long URL
-                  </label>
-                  <input
-                    type="url"
-                    placeholder="https://example.com/very-long-url"
-                    value={url}
-                    onChange={handleUrlChange}
-                    required
-                    className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm transition-all duration-300"
-                  />
+            <div className="relative w-full max-w-sm space-y-5">
+              
+              {/* Card 1: Link Preview */}
+              <motion.div
+                initial={{ opacity: 0, x: -30, y: -20 }}
+                animate={{ 
+                  opacity: 1, 
+                  x: 0, 
+                  y: [0, -6, 0]
+                }}
+                transition={{ 
+                  opacity: { duration: 0.6, delay: 0.1 },
+                  x: { duration: 0.6, delay: 0.1 },
+                  y: { duration: 4, repeat: Infinity, ease: "easeInOut" }
+                }}
+                whileHover={{ scale: 1.03, zIndex: 30 }}
+                className="glass-panel p-5 rounded-2xl border border-purple-500/20 shadow-xl bg-slate-950/80 cursor-pointer relative z-10"
+              >
+                <div className="flex justify-between items-center mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500 animate-ping" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-green-400">Live Short Link</span>
+                  </div>
+                  <span className="text-[9px] font-mono bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded-full border border-purple-500/20">Active</span>
                 </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-pink-400 font-mono">bitlinks.io/nextjs-15</p>
+                  <p className="text-[11px] text-slate-400 truncate">https://nextjs.org/blog/next-15-release-details</p>
+                </div>
+              </motion.div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                    Custom Alias
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-xs font-mono text-gray-600">
-                      bitlinks.io/
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="alias"
-                      value={shorturl}
-                      onChange={(e) => setShorturl(e.target.value)}
-                      required
-                      className="w-full pl-24 pr-4 py-3 rounded-xl bg-slate-900/60 border border-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm font-mono transition-all duration-300"
-                    />
+              {/* Card 2: Analytics & Click Traffic */}
+              <motion.div
+                initial={{ opacity: 0, x: 30, y: 10 }}
+                animate={{ 
+                  opacity: 1, 
+                  x: 0, 
+                  y: [0, 6, 0]
+                }}
+                transition={{ 
+                  opacity: { duration: 0.6, delay: 0.3 },
+                  x: { duration: 0.6, delay: 0.3 },
+                  y: { duration: 5, repeat: Infinity, ease: "easeInOut" }
+                }}
+                whileHover={{ scale: 1.03, zIndex: 30 }}
+                className="glass-panel p-5 rounded-2xl border border-pink-500/20 shadow-xl bg-slate-950/80 cursor-pointer relative z-20 sm:translate-x-6"
+              >
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-pink-400">Clicks Monitor</span>
+                  <div className="flex items-center gap-1 text-[10px] text-green-400 font-bold">
+                    <TrendingUp className="h-3.5 w-3.5 text-green-400" />
+                    <span className="text-green-400">+18.4%</span>
                   </div>
                 </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20 hover:scale-[1.02] active:scale-95 disabled:opacity-75 transition-all duration-300 cursor-pointer"
-                >
-                  {loading ? (
-                    <span className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <Bolt className="h-4 w-4" />
-                      Shorten Now
-                    </>
-                  )}
-                </button>
-              </form>
-
-              {/* Success/Error Message */}
-              <AnimatePresence>
-                {message && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className={`mt-4 p-3 rounded-xl border text-sm text-center font-medium ${
-                      generatedUrl
-                        ? "bg-green-500/10 border-green-500/20 text-green-400"
-                        : "bg-red-500/10 border-red-500/20 text-red-400"
-                    }`}
-                  >
-                    {message}
-                  </motion.div>
-                )}
-
-                {/* Shortened URL Output Container */}
-                {generatedUrl && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="mt-6 p-4 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-center space-y-3"
-                  >
-                    <p className="text-xs font-semibold text-purple-300">Your shortened link is ready!</p>
-                    <div className="flex items-center gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-900">
-                      <input
-                        type="text"
-                        readOnly
-                        value={generatedUrl}
-                        className="bg-transparent border-none text-xs font-mono text-pink-400 w-full focus:outline-none"
+                <div className="flex items-end justify-between gap-4">
+                  <div className="space-y-1">
+                    <p className="text-3xl font-black text-white">4,821</p>
+                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Total Redirects</p>
+                  </div>
+                  
+                  {/* Miniature Animated Graph Bars */}
+                  <div className="flex items-end gap-1.5 h-12 pb-1">
+                    {[30, 60, 45, 90, 75].map((height, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ height: 0 }}
+                        animate={{ height: `${height}%` }}
+                        transition={{ duration: 0.8, delay: 0.5 + i * 0.1 }}
+                        className="w-2.5 bg-gradient-to-t from-purple-500 to-pink-500 rounded-t-sm"
                       />
-                      <button
-                        onClick={() => handleCopy(generatedUrl)}
-                        className="p-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white transition-colors"
-                      >
-                        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                      </button>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Card 3: Geolocation Pings */}
+              <motion.div
+                initial={{ opacity: 0, x: -30, y: 20 }}
+                animate={{ 
+                  opacity: 1, 
+                  x: 0, 
+                  y: [0, -4, 0]
+                }}
+                transition={{ 
+                  opacity: { duration: 0.6, delay: 0.5 },
+                  x: { duration: 0.6, delay: 0.5 },
+                  y: { duration: 4.5, repeat: Infinity, ease: "easeInOut" }
+                }}
+                whileHover={{ scale: 1.03, zIndex: 30 }}
+                className="glass-panel p-5 rounded-2xl border border-cyan-500/20 shadow-xl bg-slate-950/80 cursor-pointer relative z-10"
+              >
+                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 block mb-3">Geographic Audits</span>
+                
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 text-slate-300">
+                      <Globe className="h-3.5 w-3.5 text-cyan-400 animate-spin" style={{ animationDuration: '8s' }} />
+                      <span>United States</span>
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
+                    <span className="text-[9px] font-mono text-slate-500">Just now</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 text-slate-300">
+                      <Globe className="h-3.5 w-3.5 text-pink-400" />
+                      <span>Tokyo, Japan</span>
+                    </div>
+                    <span className="text-[9px] font-mono text-slate-500">2 mins ago</span>
+                  </div>
+                </div>
+              </motion.div>
+
+            </div>
           </div>
         </section>
 
@@ -318,9 +270,9 @@ export default function Home() {
                   </button>
                 </div>
                 <div className="space-y-3.5">
-                  {recentLinks.map((link) => (
+                  {recentLinks.map((link, index) => (
                     <motion.div
-                      key={link.id}
+                      key={link.id ? `${link.id}-${index}` : `recent-${index}`}
                       initial={{ x: -10, opacity: 0 }}
                       animate={{ x: 0, opacity: 1 }}
                       className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 hover:border-purple-500/30 transition-all duration-300"
@@ -442,5 +394,6 @@ export default function Home() {
 
       </div>
     </main>
+    </PageWrapper>
   );
 }

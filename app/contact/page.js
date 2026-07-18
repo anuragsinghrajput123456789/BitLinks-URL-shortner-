@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Phone, MapPin, Clock, Send, Sparkles, HelpCircle, Check } from "lucide-react";
+import PageWrapper from "../components/PageWrapper";
 
 const ContactPage = () => {
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", subject: "", message: "" });
@@ -24,7 +25,8 @@ const ContactPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-gray-100 grid-bg py-20 px-4 sm:px-6 lg:px-8">
+    <PageWrapper>
+      <div className="min-h-screen bg-slate-950 text-gray-100 grid-bg py-20 px-4 sm:px-6 lg:px-8">
       {/* Glow Effects */}
       <div className="absolute top-[15%] left-[15%] w-[25rem] h-[25rem] bg-purple-600/5 rounded-full blur-3xl -z-10 animate-blob" />
       <div className="absolute bottom-[15%] right-[15%] w-[30rem] h-[30rem] bg-pink-600/5 rounded-full blur-3xl -z-10 animate-blob animation-delay-2000" />
@@ -44,7 +46,7 @@ const ContactPage = () => {
           Get In <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent text-neon-glow">Touch</span>
         </h1>
         <p className="text-gray-400 max-w-xl mx-auto text-sm sm:text-base leading-relaxed">
-          Have questions about link limits, APIs, or integration? Message our core team and we'll reply as soon as possible.
+          Have questions about link limits, APIs, or integration? Message our core team and we&apos;ll reply as soon as possible.
         </p>
       </div>
 
@@ -219,6 +221,7 @@ const ContactPage = () => {
         </div>
       </div>
     </div>
+    </PageWrapper>
   );
 };
 

@@ -1,10 +1,13 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Copy, Check, Search, Calendar, BarChart2, MousePointerClick, TrendingUp, CalendarDays, ExternalLink, Plus, RefreshCw, AlertCircle
 } from "lucide-react";
+import { toast } from "../../lib/toastState";
+import PageWrapper from "../components/PageWrapper";
 
 const Dashboard = () => {
   const [urls, setUrls] = useState([]);
@@ -16,6 +19,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchUrls();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchUrls = async () => {
@@ -36,14 +40,15 @@ const Dashboard = () => {
     }
   };
 
-  const copyToClipboard = async (shorturl, id) => {
+  const copyToClipboard = async (fullShortUrl, id) => {
     try {
-      const fullUrl = `${window.location.protocol}//${window.location.host}/${shorturl}`;
-      await navigator.clipboard.writeText(fullUrl);
+      await navigator.clipboard.writeText(fullShortUrl);
       setCopiedId(id);
+      toast.success("Short URL copied to clipboard! 📋");
       setTimeout(() => setCopiedId(null), 2000);
     } catch (err) {
       console.error("Failed to copy to clipboard:", err);
+      toast.error("Failed to copy link.");
     }
   };
 
@@ -79,7 +84,8 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-gray-100 grid-bg py-12 px-4 sm:px-6 lg:px-8">
+    <PageWrapper>
+      <div className="min-h-screen bg-slate-950 text-gray-100 grid-bg py-12 px-4 sm:px-6 lg:px-8">
       {/* Background blobs */}
       <div className="absolute top-[10%] left-[10%] w-[25rem] h-[25rem] bg-purple-600/5 rounded-full blur-3xl -z-10 animate-blob" />
       <div className="absolute bottom-[20%] right-[10%] w-[30rem] h-[30rem] bg-cyan-600/5 rounded-full blur-3xl -z-10 animate-blob animation-delay-4000" />
@@ -102,13 +108,13 @@ const Dashboard = () => {
             >
               <RefreshCw className="h-4 w-4" />
             </button>
-            <a
+            <Link
               href="/shorten"
               className="flex items-center gap-1.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-purple-500/20 hover:scale-105 transition-all duration-300"
             >
               <Plus className="h-4.5 w-4.5" />
               Create Link
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -116,7 +122,7 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           
           {/* Card 1: Total Links */}
-          <div className="glass-panel p-6 rounded-2xl border border-slate-850 flex items-center justify-between">
+          <div className="glass-panel p-6 rounded-2xl border border-slate-800 flex items-center justify-between">
             <div className="space-y-1">
               <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total Links</span>
               <p className="text-2xl font-black text-white">{totalLinks}</p>
@@ -127,7 +133,7 @@ const Dashboard = () => {
           </div>
 
           {/* Card 2: Total Clicks */}
-          <div className="glass-panel p-6 rounded-2xl border border-slate-850 flex items-center justify-between">
+          <div className="glass-panel p-6 rounded-2xl border border-slate-800 flex items-center justify-between">
             <div className="space-y-1">
               <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Aggregate Traffic</span>
               <p className="text-2xl font-black text-white">{totalClicks} Clicks</p>
@@ -138,7 +144,7 @@ const Dashboard = () => {
           </div>
 
           {/* Card 3: Most Active Link */}
-          <div className="glass-panel p-6 rounded-2xl border border-slate-850 flex items-center justify-between">
+          <div className="glass-panel p-6 rounded-2xl border border-slate-800 flex items-center justify-between">
             <div className="space-y-1 min-w-0 flex-1">
               <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Most Popular Link</span>
               <p className="text-sm font-mono font-bold text-cyan-400 truncate">
@@ -155,7 +161,7 @@ const Dashboard = () => {
         </div>
 
         {/* Filters and List */}
-        <div className="glass-panel rounded-3xl border border-slate-850 overflow-hidden shadow-2xl">
+        <div className="glass-panel rounded-3xl border border-slate-800 overflow-hidden shadow-2xl">
           
           {/* List Toolbar */}
           <div className="p-6 border-b border-slate-900 bg-slate-950/40 backdrop-blur-sm flex flex-col md:flex-row justify-between items-center gap-4">
@@ -200,11 +206,11 @@ const Dashboard = () => {
               </div>
             ) : (
               <ul className="divide-y divide-slate-900/60">
-                {filteredUrls.map((url) => {
+                {filteredUrls.map((url, index) => {
                   const clickPercentage = maxClicks > 0 ? ((url.clicks || 0) / maxClicks) * 100 : 0;
                   return (
                     <motion.li
-                      key={url._id}
+                      key={url._id ? `${url._id}-${index}` : `db-${index}`}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       className="px-6 py-5 hover:bg-slate-900/25 transition relative group overflow-hidden"
@@ -224,7 +230,7 @@ const Dashboard = () => {
                               /{url.shorturl}
                             </span>
                             <a
-                              href={`${window.location.protocol}//${window.location.host}/${url.shorturl}`}
+                              href={url.fullShortUrl}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-gray-600 hover:text-cyan-400 p-1 transition-colors"
@@ -259,8 +265,8 @@ const Dashboard = () => {
 
                           {/* Quick Copy Action */}
                           <button
-                            onClick={() => copyToClipboard(url.shorturl, url._id)}
-                            className="flex items-center gap-1.5 text-xs font-bold bg-slate-900 hover:bg-slate-800 border border-slate-850 hover:border-slate-700 text-gray-300 hover:text-white px-3.5 py-2 rounded-xl transition-all cursor-pointer"
+                            onClick={() => copyToClipboard(url.fullShortUrl, url._id)}
+                            className="flex items-center gap-1.5 text-xs font-bold bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-gray-300 hover:text-white px-3.5 py-2 rounded-xl transition-all cursor-pointer"
                           >
                             {copiedId === url._id ? (
                               <>
@@ -287,6 +293,7 @@ const Dashboard = () => {
 
       </div>
     </div>
+    </PageWrapper>
   );
 };
 

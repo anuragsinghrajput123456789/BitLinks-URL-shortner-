@@ -3,15 +3,31 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, Link2, Sparkles, QrCode, Download, Copy, Check, Info } from "lucide-react";
+import { toast } from "../../lib/toastState";
+import PageWrapper from "../components/PageWrapper";
 
 const Page = () => {
   const [url, setUrl] = useState("");
   const [shorturl, setShorturl] = useState("");
   const [generated, setGenerated] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
   const [copied, setCopied] = useState(false);
   const [qrLoading, setQrLoading] = useState(false);
+  const [host, setHost] = useState("bitlinks.io");
+
+  useEffect(() => {
+    if (process.env.APP_URL) {
+      try {
+        setHost(new URL(process.env.APP_URL).host);
+      } catch (e) {
+        if (typeof window !== "undefined") {
+          setHost(window.location.host);
+        }
+      }
+    } else if (typeof window !== "undefined") {
+      setHost(window.location.host);
+    }
+  }, []);
 
   // Auto-fill random alias if user types URL but leaves alias blank
   const handleUrlChange = (e) => {
@@ -25,52 +41,88 @@ const Page = () => {
 
   const generate = async (e) => {
     e.preventDefault();
-    if (!url || !shorturl) {
-      setMessage("Please fill both fields before generating.");
+    if (loading) return; // Prevent duplicate submissions
+
+    const trimmedUrl = url.trim();
+    const trimmedAlias = shorturl.trim();
+
+    if (!trimmedUrl || !trimmedAlias) {
+      toast.error("Please fill both fields before generating.");
+      return;
+    }
+
+    // Alias Validation: only alphanumeric, dashes, and underscores
+    const aliasRegex = /^[a-zA-Z0-9_-]+$/;
+    if (!aliasRegex.test(trimmedAlias)) {
+      toast.error("Custom alias can only contain letters, numbers, hyphens, and underscores.");
+      return;
+    }
+
+    // URL Validation & Auto-prepend Protocol
+    let finalUrl = trimmedUrl;
+    if (!/^https?:\/\//i.test(finalUrl)) {
+      finalUrl = "https://" + finalUrl;
+      setUrl(finalUrl);
+    }
+
+    try {
+      const parsedUrl = new URL(finalUrl);
+      if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+        toast.error("Unsupported URL protocol. Only http:// and https:// are supported.");
+        return;
+      }
+      const hostname = parsedUrl.hostname;
+      if (!hostname || (hostname !== "localhost" && !hostname.includes("."))) {
+        toast.error("Invalid URL. Hostname must be a valid domain or localhost.");
+        return;
+      }
+    } catch (_) {
+      toast.error("Please enter a valid HTTP or HTTPS URL.");
       return;
     }
 
     setLoading(true);
-    setMessage("");
     setGenerated("");
 
     try {
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, shorturl }),
+        body: JSON.stringify({ url: finalUrl, shorturl: trimmedAlias }),
       });
 
       const result = await response.json();
 
       if (result.success) {
-        const fullLink = `${
-          process.env.NEXT_PUBLIC_HOST || window.location.origin
-        }/${shorturl}`;
-        setGenerated(fullLink);
-        setMessage("Short URL generated successfully 🎉");
+        setGenerated(result.shortUrl);
+        toast.success("Short URL generated successfully 🎉");
 
-        // Sync with dashboard history if needed
+        // Sync with dashboard history
         const saved = localStorage.getItem("bitlinks_recent") || "[]";
         try {
           const recent = JSON.parse(saved);
+          const recentArray = Array.isArray(recent) ? recent : [];
           const newLink = {
             id: Date.now(),
-            original: url,
-            short: shorturl,
-            fullShort: fullLink,
+            original: finalUrl,
+            short: trimmedAlias,
+            fullShort: result.shortUrl,
             createdAt: new Date().toISOString(),
           };
-          localStorage.setItem("bitlinks_recent", JSON.stringify([newLink, ...recent.slice(0, 4)]));
+          localStorage.setItem("bitlinks_recent", JSON.stringify([newLink, ...recentArray.slice(0, 4)]));
         } catch (e) {
-          console.error("Local storage sync error", e);
+          console.error("Local storage sync error:", e);
         }
       } else {
-        setMessage(result.message || "Failed to generate short URL.");
+        if (result.message && result.message.toLowerCase().includes("exist")) {
+          toast.error("Short URL alias already exists! 🚨");
+        } else {
+          toast.error(result.message || "Failed to generate short URL.");
+        }
       }
     } catch (error) {
       console.error(error);
-      setMessage("Something went wrong. Try again.");
+      toast.error("Could not connect to the server. Please check your connection.");
     } finally {
       setLoading(false);
     }
@@ -80,9 +132,11 @@ const Page = () => {
     try {
       await navigator.clipboard.writeText(generated);
       setCopied(true);
+      toast.success("Short URL copied to clipboard! 📋");
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error("Failed to copy to clipboard:", err);
+      toast.error("Failed to copy URL to clipboard.");
     }
   };
 
@@ -102,15 +156,18 @@ const Page = () => {
       a.click();
       a.remove();
       URL.revokeObjectURL(blobUrl);
+      toast.success("QR Code downloaded successfully! 📲");
     } catch (err) {
       console.error("Failed to download QR code", err);
+      toast.error("QR Code download failed.");
     } finally {
       setQrLoading(false);
     }
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-slate-950 text-gray-100 grid-bg py-20 px-4">
+    <PageWrapper>
+      <div className="flex justify-center items-center min-h-screen bg-slate-950 text-gray-100 grid-bg py-20 px-4">
       {/* Glow Backdrops */}
       <div className="absolute top-[20%] left-[20%] w-[20rem] h-[20rem] bg-purple-600/5 rounded-full blur-3xl -z-10" />
       <div className="absolute bottom-[20%] right-[20%] w-[22rem] h-[22rem] bg-pink-600/5 rounded-full blur-3xl -z-10" />
@@ -151,14 +208,14 @@ const Page = () => {
             <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">
               Custom Short Path
             </label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-xs font-mono text-gray-600">
-                bitlinks.io/
+            <div className="flex items-center w-full bg-slate-900/60 border border-slate-800 rounded-xl focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-transparent transition-all duration-300 overflow-hidden">
+              <span className="pl-4 text-xs sm:text-sm font-mono text-slate-500 select-none">
+                {host}/
               </span>
               <input
                 value={shorturl}
                 onChange={(e) => setShorturl(e.target.value)}
-                className="w-full pl-24 pr-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm font-mono transition-all duration-300"
+                className="w-full pl-1 pr-4 py-4 bg-transparent border-none focus:outline-none text-sm font-mono text-gray-100 placeholder-slate-500"
                 type="text"
                 placeholder="alias"
                 required
@@ -188,21 +245,9 @@ const Page = () => {
         </form>
 
         <AnimatePresence>
-          {message && (
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className={`text-center text-sm font-semibold mt-4 ${
-                message.includes("successfully") ? "text-green-400" : "text-red-400"
-              }`}
-            >
-              {message}
-            </motion.p>
-          )}
-
           {generated && (
             <motion.div
+              key="shorten-panel-output"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
@@ -233,6 +278,7 @@ const Page = () => {
               {/* QR Code Segment */}
               <div className="flex flex-col items-center justify-center pt-4 border-t border-slate-900 gap-4">
                 <div className="bg-white p-3 rounded-2xl shadow-xl flex items-center justify-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
                       generated
@@ -259,6 +305,7 @@ const Page = () => {
         </AnimatePresence>
       </motion.div>
     </div>
+    </PageWrapper>
   );
 };
 

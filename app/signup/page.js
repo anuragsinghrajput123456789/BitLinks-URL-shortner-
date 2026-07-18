@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { User, Mail, Lock, Eye, EyeOff, UserPlus, Sparkles, AlertCircle, CheckCircle } from "lucide-react";
+import PageWrapper from "../components/PageWrapper";
 
 const Signup = () => {
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
@@ -46,7 +47,8 @@ const Signup = () => {
   const isSuccess = message.includes("successfully");
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 text-gray-100 grid-bg px-4 py-12">
+    <PageWrapper>
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-gray-100 grid-bg px-4 py-12">
       {/* Background glowing blobs */}
       <div className="absolute top-[20%] right-[20%] w-[20rem] h-[20rem] bg-purple-600/5 rounded-full blur-3xl -z-10 animate-blob" />
       <div className="absolute bottom-[20%] left-[20%] w-[22rem] h-[22rem] bg-pink-600/5 rounded-full blur-3xl -z-10 animate-blob animation-delay-2000" />
@@ -181,6 +183,7 @@ const Signup = () => {
         </div>
       </motion.div>
     </div>
+    </PageWrapper>
   );
 };
 
