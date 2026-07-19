@@ -197,11 +197,22 @@ cmd /c "set NODE_ENV=production&& npm run build"
 ## 🛠️ Maintenance & Recent Improvements
 
 We recently performed a complete system audit and implemented the following updates:
-- **⚡ Next.js 15 Redirection Optimization**: redid dynamic redirection (`/[shorturl]`) using Next.js 15's stable `after()` API to perform non-blocking asynchronous click updates in the background, keeping redirects under 15ms.
+- **⚡ Next.js 15 Redirection Optimization**: Redid dynamic redirection (`/[shorturl]`) using Next.js 15's stable `after()` API to perform non-blocking asynchronous click updates in the background, keeping redirects under 15ms.
 - **🛡️ Early Route Guards**: Added alphanumeric regex verification (`/^[a-zA-Z0-9_-]+$/`) to path parameters. Invalid paths short-circuit instantly with a 404 block without querying the database, preventing DB scan attacks.
 - **🔌 Resilient Database Client**: Refactored [mongoDB.js](file:///c:/Users/91836/Downloads/Mern-Ai-Projects/URL-shortner/lib/mongoDB.js) to use a Thenable wrapper that resets connection promise caches on rejection, preventing permanent connection lockouts. Added linear backoff retries (`executeDbWithRetry`) for reliable DB operations.
 - **🔒 Production Hardening**: Updated [next.config.mjs](file:///c:/Users/91836/Downloads/Mern-Ai-Projects/URL-shortner/next.config.mjs) with production security headers: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, and HSTS. Added `htmlFor` and `id` properties to client forms for web accessibility compliance.
 - **🍞 Event-Based Toast Alerts**: Created a centralized pub-sub state store (`lib/toastState.js`) and matching UI container (`app/components/ToastContainer.js`) powered by Framer Motion to decouple notifications from standard React Context.
 - **📂 Developer Documentation**: Outlined the core system architecture, data diagrams, API flows, and case studies inside the `docs/` folder to guide developers.
+- **🎨 Premium Glowing Favicon**: Designed and updated a customized futuristic glowing neon favicon using standard static asset serving under `public/` directory, resolving Next.js dynamic metadata `500` errors.
+- **↔️ Minimizable Sidebar**: Added a collapsible dashboard sidebar supporting smooth framer-motion/Tailwind transitions (collapsing to `w-20`), accessible tooltips for all links, and local storage state persistence.
+- **📱 Local Testing QR Code Fallbacks**: Implemented dynamic localhost-aware QR code rendering. If the app runs on `localhost`, the generated QR code encodes the target destination URL directly to allow local scanner redirection checks. In production, it correctly encodes the trackable short link.
+- **📊 Opaque Modal Overlays**: Fixed transparency overlapping issues on the CRUD configure drawer and QR Share modal overlays by correcting invalid Tailwind CSS classes.
+
+---
+
+## 👤 Author
+
+- **Anurag Singh** — Lead Developer & Creator of BitLinks.
+
 
 
