@@ -310,7 +310,10 @@ export async function POST(request) {
       }
     }
 
-    const appUrl = process.env.APP_URL || "https://bitlinks.io";
+    const requestHost = request.headers.get("x-forwarded-host") || request.headers.get("host");
+    const requestProto = request.headers.get("x-forwarded-proto") || "http";
+    const fallbackUrl = requestHost ? `${requestProto}://${requestHost}` : "https://bitlinks.io";
+    const appUrl = process.env.APP_URL || fallbackUrl;
     const normalizedAppUrl = appUrl.endsWith("/") ? appUrl.slice(0, -1) : appUrl;
     const fullShortUrl = `${normalizedAppUrl}/${finalSlug}`;
 
