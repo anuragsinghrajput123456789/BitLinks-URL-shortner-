@@ -33,6 +33,26 @@ const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [host, setHost] = useState("bitlinks.io");
 
+  // Sidebar Collapse state
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("sidebar_collapsed");
+      if (saved !== null) {
+        setIsSidebarCollapsed(saved === "true");
+      }
+    }
+  }, []);
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed(prev => {
+      const nextVal = !prev;
+      localStorage.setItem("sidebar_collapsed", String(nextVal));
+      return nextVal;
+    });
+  };
+
   // Modal / Drawer state
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("create"); // create, edit
@@ -541,60 +561,92 @@ const Dashboard = () => {
         <div className="absolute bottom-[20%] right-[10%] w-[30rem] h-[30rem] bg-cyan-600/5 rounded-full blur-3xl -z-10 animate-blob animation-delay-4000" />
 
         {/* SIDEBAR - DESKTOP */}
-        <aside className="w-64 border-r border-slate-900 bg-slate-950/60 backdrop-blur-md hidden md:flex flex-col justify-between shrink-0 p-6 z-10">
-          <div className="space-y-8">
-            <div className="flex items-center gap-2.5">
-              <div className="flex items-center justify-center p-2 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-600 shadow-md shadow-purple-500/20">
-                <Sparkles className="h-5 w-5 text-white animate-pulse" />
+        <aside className={`border-r border-slate-900 bg-slate-950/60 backdrop-blur-md hidden md:flex flex-col justify-between shrink-0 transition-all duration-300 z-10 ${
+          isSidebarCollapsed ? "w-20 p-4 items-center" : "w-64 p-6"
+        }`}>
+          <div className={`space-y-8 w-full ${isSidebarCollapsed ? "flex flex-col items-center" : ""}`}>
+            <div className={`flex items-center w-full ${isSidebarCollapsed ? "flex-col justify-center gap-4" : "justify-between gap-2.5"}`}>
+              <div className="flex items-center gap-2.5">
+                <div className="flex items-center justify-center p-2 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-600 shadow-md shadow-purple-500/20 shrink-0">
+                  <Sparkles className="h-5 w-5 text-white animate-pulse" />
+                </div>
+                {!isSidebarCollapsed && (
+                  <span className="font-extrabold text-xl tracking-wider bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                    BitLinks
+                  </span>
+                )}
               </div>
-              <span className="font-extrabold text-xl tracking-wider bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                BitLinks
-              </span>
+              <button 
+                onClick={toggleSidebar}
+                className="p-1.5 rounded-lg hover:bg-slate-900 text-gray-400 hover:text-white transition-colors cursor-pointer hidden md:block"
+                title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+              >
+                {isSidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              </button>
             </div>
 
-            <nav className="space-y-1">
+            <nav className="space-y-1.5 w-full">
               <Link 
                 href="/dashboard"
-                className="flex items-center gap-3 px-4 py-3 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 font-bold transition-all text-sm"
+                title="Console Panel"
+                className={`flex items-center rounded-xl font-bold transition-all text-sm bg-purple-500/10 text-purple-400 border border-purple-500/20 ${
+                  isSidebarCollapsed ? "p-3.5 justify-center" : "gap-3 px-4 py-3"
+                }`}
               >
-                <LayoutDashboard className="h-4.5 w-4.5" />
-                Console Panel
+                <LayoutDashboard className="h-5 w-5" />
+                {!isSidebarCollapsed && <span>Console Panel</span>}
               </Link>
               <Link 
                 href="/shorten"
-                className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-slate-900 transition-all text-sm"
+                title="Shorten Link"
+                className={`flex items-center rounded-xl text-gray-400 hover:text-white hover:bg-slate-900 transition-all text-sm ${
+                  isSidebarCollapsed ? "p-3.5 justify-center" : "gap-3 px-4 py-3"
+                }`}
               >
-                <PlusCircle className="h-4.5 w-4.5" />
-                Shorten Link
+                <PlusCircle className="h-5 w-5" />
+                {!isSidebarCollapsed && <span>Shorten Link</span>}
               </Link>
               <Link 
                 href="/about"
-                className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-slate-900 transition-all text-sm"
+                title="System Docs"
+                className={`flex items-center rounded-xl text-gray-400 hover:text-white hover:bg-slate-900 transition-all text-sm ${
+                  isSidebarCollapsed ? "p-3.5 justify-center" : "gap-3 px-4 py-3"
+                }`}
               >
-                <Info className="h-4.5 w-4.5" />
-                System Docs
+                <Info className="h-5 w-5" />
+                {!isSidebarCollapsed && <span>System Docs</span>}
               </Link>
             </nav>
           </div>
 
-          <div className="space-y-4">
+          <div className={`space-y-4 w-full ${isSidebarCollapsed ? "flex flex-col items-center" : ""}`}>
             {user && (
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-900/50 border border-slate-800">
+              <div 
+                title={`${user.name} (${user.email})`}
+                className={`flex items-center rounded-xl bg-slate-900/50 border border-slate-800 w-full ${
+                  isSidebarCollapsed ? "p-2 justify-center" : "gap-3 p-3"
+                }`}
+              >
                 <div className="h-9 w-9 bg-gradient-to-tr from-purple-600 to-pink-600 rounded-xl flex items-center justify-center font-bold text-white shrink-0 shadow-md shadow-purple-900/40">
                   {user.name ? user.name[0].toUpperCase() : "U"}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-white truncate">{user.name}</p>
-                  <p className="text-[10px] text-gray-500 truncate">{user.email}</p>
-                </div>
+                {!isSidebarCollapsed && (
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-white truncate">{user.name}</p>
+                    <p className="text-[10px] text-gray-500 truncate">{user.email}</p>
+                  </div>
+                )}
               </div>
             )}
             <button 
               onClick={handleLogout}
-              className="flex items-center gap-2.5 w-full px-4 py-3 rounded-xl text-sm font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/5 border border-transparent hover:border-red-500/10 transition-all text-left cursor-pointer"
+              title="Sign Out"
+              className={`flex items-center rounded-xl text-sm font-semibold text-red-400 hover:text-red-350 hover:bg-red-500/5 border border-transparent hover:border-red-500/10 transition-all cursor-pointer w-full ${
+                isSidebarCollapsed ? "p-3.5 justify-center" : "gap-2.5 px-4 py-3 text-left"
+              }`}
             >
-              <LogOut className="h-4 w-4" />
-              Sign Out
+              <LogOut className="h-5 w-5" />
+              {!isSidebarCollapsed && <span>Sign Out</span>}
             </button>
           </div>
         </aside>
@@ -832,7 +884,7 @@ const Dashboard = () => {
                 </div>
               ) : (
                 /* PREMIUM TABLE LAYOUT */
-                <table className="w-full text-left border-collapse min-w-[800px]">
+                <table className="w-full text-left border-collapse min-w-[900px]">
                   <thead>
                     <tr className="border-b border-slate-900/60 bg-slate-950/25 text-xs font-bold text-gray-500 uppercase tracking-wider select-none">
                       <th className="py-4 px-6 w-12 text-center">
@@ -843,12 +895,13 @@ const Dashboard = () => {
                           className="rounded border-slate-800 bg-slate-900 text-purple-600 focus:ring-purple-500/20 focus:ring-2 cursor-pointer h-4 w-4"
                         />
                       </th>
-                      <th className="py-4 px-6">Deployment / Destination</th>
-                      <th className="py-4 px-6 w-44">Alias Path</th>
-                      <th className="py-4 px-6 w-32 text-center">Traffic</th>
+                      <th className="py-4 px-6 min-w-[200px]">Short Link</th>
+                      <th className="py-4 px-6 min-w-[300px]">Destination URL</th>
+                      <th className="py-4 px-6 w-28 text-center">Clicks</th>
+                      <th className="py-4 px-6 w-32">Created</th>
                       <th className="py-4 px-6 w-36">Expiration</th>
                       <th className="py-4 px-6 w-24 text-center">Status</th>
-                      <th className="py-4 px-6 w-24 text-center">Actions</th>
+                      <th className="py-4 px-6 w-28 text-center">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-900/50">
@@ -859,7 +912,7 @@ const Dashboard = () => {
                       return (
                         <tr 
                           key={url._id || `row-${idx}`}
-                          className={`hover:bg-slate-900/10 transition-all relative ${
+                          className={`hover:bg-slate-900/10 transition-all ${
                             isSelected ? "bg-purple-900/5" : ""
                           }`}
                         >
@@ -873,22 +926,43 @@ const Dashboard = () => {
                             />
                           </td>
 
-                          {/* Link info */}
-                          <td className="py-4 px-6 max-w-xs sm:max-w-md">
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-mono text-sm font-bold text-purple-400">
-                                  {url.shorturl}
-                                </span>
-                                <span className="text-[10px] text-gray-500">
-                                  {new Date(url.createdAt).toLocaleDateString()}
-                                </span>
+                          {/* Short Link / Alias */}
+                          <td className="py-4 px-6">
+                            <div className="flex items-center gap-2 group/link">
+                              <span className="font-mono text-sm font-bold text-purple-400 truncate max-w-[180px]" title={url.fullShortUrl}>
+                                {host}/{url.shorturl}
+                              </span>
+                              <div className="flex items-center gap-1 opacity-60 group-hover/link:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => copyToClipboard(url.fullShortUrl, url._id)}
+                                  className="text-gray-400 hover:text-white transition-colors p-1"
+                                  title="Copy Short Link"
+                                >
+                                  {copiedId === url._id ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+                                </button>
+                                <a
+                                  href={url.fullShortUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-gray-400 hover:text-cyan-400 p-1 transition-colors"
+                                  title="Visit Redirect URL"
+                                >
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </a>
                               </div>
-                              <p className="text-xs text-gray-400 truncate hover:text-white transition-colors duration-200" title={url.url}>
-                                {url.url}
+                            </div>
+                          </td>
+
+                          {/* Target Destination */}
+                          <td className="py-4 px-6">
+                            <div className="space-y-1 max-w-sm md:max-w-md lg:max-w-lg">
+                              <p className="text-xs text-gray-300 font-semibold truncate hover:text-white transition-colors duration-200" title={url.url}>
+                                <a href={url.url} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-purple-350">
+                                  {url.url}
+                                </a>
                               </p>
                               {url.description && (
-                                <p className="text-[11px] text-gray-500 italic max-w-sm truncate">{url.description}</p>
+                                <p className="text-[11px] text-gray-550 italic truncate" title={url.description}>{url.description}</p>
                               )}
                               
                               {/* Tags badge lists */}
@@ -909,29 +983,6 @@ const Dashboard = () => {
                             </div>
                           </td>
 
-                          {/* Alias display */}
-                          <td className="py-4 px-6 font-mono text-sm font-semibold text-gray-300">
-                            <div className="flex items-center gap-1.5">
-                              <span className="truncate max-w-[120px]">{url.shorturl}</span>
-                              <button
-                                onClick={() => copyToClipboard(url.fullShortUrl, url._id)}
-                                className="text-gray-500 hover:text-white transition-colors p-1"
-                                title="Copy Short Link"
-                              >
-                                {copiedId === url._id ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
-                              </button>
-                              <a
-                                href={url.fullShortUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-gray-500 hover:text-cyan-400 p-1 transition-colors"
-                                title="Visit Redirect URL"
-                              >
-                                <ExternalLink className="h-3.5 w-3.5" />
-                              </a>
-                            </div>
-                          </td>
-
                           {/* Traffic visits */}
                           <td className="py-4 px-6 text-center">
                             <div className="inline-flex items-center gap-1 text-sm font-bold text-gray-200">
@@ -940,15 +991,22 @@ const Dashboard = () => {
                             </div>
                           </td>
 
+                          {/* Created At */}
+                          <td className="py-4 px-6">
+                            <span className="text-xs text-gray-400 font-semibold">
+                              {new Date(url.createdAt).toLocaleDateString()}
+                            </span>
+                          </td>
+
                           {/* Expiration column */}
-                          <td className="py-4 px-6 text-xs text-gray-400 font-semibold">
+                          <td className="py-4 px-6">
                             {url.expiresAt ? (
-                              <div className={`flex items-center gap-1.5 ${isExpired ? "text-rose-400" : "text-gray-300"}`}>
+                              <div className={`flex items-center gap-1.5 ${isExpired ? "text-rose-450" : "text-gray-300"}`}>
                                 <Clock className="h-3.5 w-3.5 text-gray-500" />
-                                <span>{new Date(url.expiresAt).toLocaleDateString()}</span>
+                                <span className="text-xs font-semibold">{new Date(url.expiresAt).toLocaleDateString()}</span>
                               </div>
                             ) : (
-                              <span className="text-gray-650 font-normal">Infinite Life</span>
+                              <span className="text-gray-600 text-xs font-normal">Infinite Life</span>
                             )}
                           </td>
 
@@ -963,13 +1021,13 @@ const Dashboard = () => {
                               {url.isActive !== false && !isExpired ? (
                                 <ToggleRight className="h-7 w-7 text-green-400" />
                               ) : (
-                                <ToggleLeft className={`h-7 w-7 ${isExpired ? "text-rose-950/20 cursor-not-allowed" : "text-gray-650"}`} />
+                                <ToggleLeft className={`h-7 w-7 ${isExpired ? "text-rose-950/20 cursor-not-allowed opacity-40" : "text-gray-650"}`} />
                               )}
                             </button>
                           </td>
 
-                          {/* Action Dropdown Menu */}
-                          <td className="py-4 px-6 text-center relative">
+                          {/* Actions */}
+                          <td className="py-4 px-6 text-center">
                             <div className="flex justify-center items-center gap-1.5">
                               <button
                                 onClick={() => openEditModal(url)}
