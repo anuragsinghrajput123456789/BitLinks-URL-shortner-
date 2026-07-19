@@ -24,7 +24,9 @@ const Page = () => {
     }
     // Generate displayed QR Code at 300x300 locally
     import("qrcode").then((qr) => {
-      qr.toDataURL(generated, { width: 300, margin: 2, errorCorrectionLevel: "M" })
+      const isLocal = generated.includes("localhost") || generated.includes("127.0.0.1") || generated.includes("::1");
+      const qrValue = isLocal ? url : generated;
+      qr.toDataURL(qrValue, { width: 300, margin: 2, errorCorrectionLevel: "M" })
         .then((urlData) => {
           setQrDataUrl(urlData);
         })
@@ -33,7 +35,7 @@ const Page = () => {
           toast.error("Failed to render QR Code.");
         });
     });
-  }, [generated]);
+  }, [generated, url]);
 
   useEffect(() => {
     if (process.env.APP_URL) {
@@ -164,8 +166,10 @@ const Page = () => {
     setQrLoading(true);
     try {
       const qr = await import("qrcode");
+      const isLocal = generated.includes("localhost") || generated.includes("127.0.0.1") || generated.includes("::1");
+      const qrValue = isLocal ? url : generated;
       // Generate a high-resolution (1000x1000) QR Code locally for download
-      const highResDataUrl = await qr.toDataURL(generated, {
+      const highResDataUrl = await qr.toDataURL(qrValue, {
         width: 1000,
         margin: 2,
         errorCorrectionLevel: "H",

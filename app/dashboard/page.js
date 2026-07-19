@@ -138,7 +138,7 @@ const Dashboard = () => {
     }
   }, []);
 
-  const toggleQrPreview = useCallback(async (id, fullShortUrl) => {
+  const toggleQrPreview = useCallback(async (id, urlItem) => {
     if (previewQrId === id) {
       setPreviewQrId(null);
       return;
@@ -150,7 +150,9 @@ const Dashboard = () => {
     setQrLoading(true);
     try {
       const qr = await import("qrcode");
-      const dataUrl = await qr.toDataURL(fullShortUrl, { width: 250, margin: 1, errorCorrectionLevel: "M" });
+      const isLocal = urlItem.fullShortUrl.includes("localhost") || urlItem.fullShortUrl.includes("127.0.0.1") || urlItem.fullShortUrl.includes("::1");
+      const qrValue = isLocal ? urlItem.url : urlItem.fullShortUrl;
+      const dataUrl = await qr.toDataURL(qrValue, { width: 250, margin: 1, errorCorrectionLevel: "M" });
       setQrDataUrls(prev => ({ ...prev, [id]: dataUrl }));
     } catch (err) {
       console.error("Failed to generate QR preview:", err);
@@ -160,10 +162,12 @@ const Dashboard = () => {
     }
   }, [previewQrId, qrDataUrls]);
 
-  const downloadQr = useCallback(async (shorturl, fullShortUrl) => {
+  const downloadQr = useCallback(async (shorturl, urlItem) => {
     try {
       const qr = await import("qrcode");
-      const highResDataUrl = await qr.toDataURL(fullShortUrl, {
+      const isLocal = urlItem.fullShortUrl.includes("localhost") || urlItem.fullShortUrl.includes("127.0.0.1") || urlItem.fullShortUrl.includes("::1");
+      const qrValue = isLocal ? urlItem.url : urlItem.fullShortUrl;
+      const highResDataUrl = await qr.toDataURL(qrValue, {
         width: 1000,
         margin: 2,
         errorCorrectionLevel: "H"
@@ -1345,7 +1349,7 @@ const Dashboard = () => {
                         <Loader2 className="animate-spin h-6 w-6 text-purple-500" />
                       ) : (
                         <button
-                          onClick={() => toggleQrPreview(shareTargetUrl._id, shareTargetUrl.fullShortUrl)}
+                          onClick={() => toggleQrPreview(shareTargetUrl._id, shareTargetUrl)}
                           className="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-bold cursor-pointer"
                         >
                           Generate QR Code
@@ -1373,7 +1377,7 @@ const Dashboard = () => {
 
                 <div className="flex gap-3">
                   <button
-                    onClick={() => downloadQr(shareTargetUrl.shorturl, shareTargetUrl.fullShortUrl)}
+                    onClick={() => downloadQr(shareTargetUrl.shorturl, shareTargetUrl)}
                     disabled={!qrDataUrls[shareTargetUrl._id]}
                     className="flex-1 py-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs font-bold text-gray-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-1.5"
                   >
