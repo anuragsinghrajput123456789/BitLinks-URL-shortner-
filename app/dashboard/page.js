@@ -1110,7 +1110,7 @@ const Dashboard = () => {
                 animate={{ x: 0 }}
                 exit={{ x: "100%" }}
                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                className="fixed right-0 top-0 bottom-0 w-full max-w-lg bg-slate-955 border-l border-slate-900 p-8 shadow-2xl overflow-y-auto z-50 flex flex-col justify-between"
+                className="fixed right-0 top-0 bottom-0 w-full max-w-lg bg-slate-950 border-l border-slate-900 p-8 shadow-2xl overflow-y-auto z-50 flex flex-col justify-between"
               >
                 <div className="space-y-8">
                   <div className="flex justify-between items-center">
@@ -1318,7 +1318,7 @@ const Dashboard = () => {
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-slate-955 border border-slate-800 p-6 sm:p-8 rounded-3xl max-w-md w-full relative z-10 space-y-6 shadow-2xl text-center"
+                className="bg-slate-950 border border-slate-800 p-6 sm:p-8 rounded-3xl max-w-md w-full relative z-10 space-y-6 shadow-2xl text-center"
               >
                 <div className="flex justify-between items-center text-left">
                   <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Share Deployment</span>
