@@ -1,84 +1,127 @@
-# Deploying BitLinks to Vercel
+# BitLinks - Vercel Deployment Guide
 
-This guide provides step-by-step instructions on how to deploy the BitLinks URL Shortener application to **Vercel** with a **MongoDB Atlas** database.
-
----
-
-## Prerequisites
-
-Before starting, make sure you have:
-1. A **GitHub** account with this project pushed to a repository.
-2. A **Vercel** account (you can sign up using GitHub).
-3. A **MongoDB Atlas** account (free tier works perfectly).
+This comprehensive guide provides step-by-step instructions on deploying the **BitLinks URL Shortener** application to **Vercel** with a **MongoDB Atlas** database.
 
 ---
 
-## Step 1: Set up MongoDB Atlas (Database)
+## 📋 Table of Contents
+1. [Prerequisites](#1-prerequisites)
+2. [Step 1: Configure MongoDB Atlas (Database)](#step-1-configure-mongodb-atlas-database)
+3. [Step 2: Deploy to Vercel (Dashboard Method - Recommended)](#step-2-deploy-to-vercel-dashboard-method---recommended)
+4. [Step 3: Deploy via Vercel CLI (Alternative Method)](#step-3-deploy-via-vercel-cli-alternative-method)
+5. [Step 4: Environment Variables Setup](#step-4-environment-variables-setup)
+6. [Step 5: Verify Deployment](#step-5-verify-deployment)
+7. [🛠️ Troubleshooting & FAQ](#%EF%B8%8F-troubleshooting--faq)
 
-Since Vercel uses dynamic IP addresses, you need to configure your MongoDB cluster to allow external requests:
+---
+
+## 1. Prerequisites
+
+Before starting, ensure you have:
+- A **GitHub** account with this repository pushed (`BitLinks-URL-shortner-`).
+- A **Vercel** account ([sign up at vercel.com](https://vercel.com/signup) using GitHub).
+- A **MongoDB Atlas** account ([sign up at mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas)).
+
+---
+
+## Step 1: Configure MongoDB Atlas (Database)
+
+Since Vercel uses serverless functions with dynamic IP addresses, you must configure your MongoDB cluster to allow connection requests:
 
 1. **Log in** to your [MongoDB Atlas Dashboard](https://cloud.mongodb.com/).
-2. Create or select a cluster.
-3. Go to **Network Access** under Security in the left sidebar:
+2. Under **Security** in the left sidebar, click **Network Access**:
    - Click **Add IP Address**.
-   - Select **Allow Access From Anywhere** (IP: `0.0.0.0/0`). This is required because Vercel serverless functions do not have static IP addresses.
+   - Click **Allow Access From Anywhere** (`0.0.0.0/0`).
    - Click **Confirm**.
-4. Go to **Database Access**:
-   - Create a database user. Remember the **username** and **password**.
-5. Go to **Database** (clusters overview):
+3. Under **Security**, click **Database Access**:
+   - Click **Add New Database User**.
+   - Create a username and strong password. Select **Read and write to any database**.
+   - Save the user credentials.
+4. Under **Deployment**, click **Database**:
    - Click **Connect** on your cluster.
-   - Select **Drivers** (usually Node.js).
-   - Copy the connection string. It should look like this:
+   - Select **Drivers** (Node.js).
+   - Copy the connection string. It will look like this:
+     ```env
+     mongodb+srv://<username>:<password>@cluster0.xxxx.mongodb.net/bitlinks?retryWrites=true&w=majority
      ```
-     mongodb+srv://<username>:<password>@cluster0.xxxx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
-     ```
-   - Replace `<username>` and `<password>` with your database user credentials.
+   - Replace `<username>` and `<password>` with your actual MongoDB user credentials.
 
 ---
 
-## Step 2: Import Project in Vercel
+## Step 2: Deploy to Vercel (Dashboard Method - Recommended)
 
-1. Log in to [Vercel](https://vercel.com).
-2. Click **Add New** -> **Project**.
+1. Log in to [Vercel Dashboard](https://vercel.com/dashboard).
+2. Click **Add New...** -> **Project**.
 3. Import your GitHub repository (`BitLinks-URL-shortner-`).
-4. Keep the framework preset as **Next.js** and build settings as default.
+4. Framework Preset will be automatically detected as **Next.js**.
+5. Expand the **Environment Variables** section and add the following keys:
 
----
-
-## Step 3: Configure Environment Variables in Vercel
-
-Under the **Environment Variables** section of your Vercel project configuration, add the following variables:
-
-| Key | Value | Description |
+| Key | Example Value | Description |
 | :--- | :--- | :--- |
-| `MONGODB_URI` | `mongodb+srv://...` | Your MongoDB Atlas connection string (configured in Step 1). |
-| `JWT_SECRET` | *[Your custom random string]* | A strong random string (e.g. `3a7f8c09d5...`) used to encrypt user auth sessions. |
-| `APP_URL` | `https://your-app-domain.vercel.app` | Your actual deployed Vercel domain name (used for generating absolute short links). |
-| `VITE_API_URL` | `https://your-app-domain.vercel.app` | Set this to match your `APP_URL` for full frontend compatibility. |
+| `MONGODB_URI` | `mongodb+srv://user:pass@cluster.mongodb.net/bitlinks?retryWrites=true&w=majority` | MongoDB connection string |
+| `JWT_SECRET` | `3f8a9b1c7d2e4f6a5b8c9d0e1f2a3b4c` | Secret key for JWT auth tokens |
+| `APP_URL` | `https://your-app.vercel.app` | Base URL of your deployed app |
+| `VITE_API_URL` | `https://your-app.vercel.app` | Matching API URL for frontend |
 
-> [!TIP]
-> You can temporarily set `APP_URL` and `VITE_API_URL` to Vercel's generated preview URL (e.g., `https://your-project.vercel.app`) during deployment, then update them to your final production domain once Vercel assigns it.
-
----
-
-## Step 4: Deploy!
-
-1. Click **Deploy**.
-2. Vercel will build the project and deploy it.
-3. Once the build finishes successfully, you will get a live site preview URL!
+6. Click **Deploy**. Vercel will run `npm run build` and launch your project!
 
 ---
 
-## Troubleshooting & FAQ
+## Step 3: Deploy via Vercel CLI (Alternative Method)
 
-### 1. Connection timed out or server error 500
-- **Cause**: MongoDB Atlas network access is blocking Vercel.
-- **Fix**: Double check that IP `0.0.0.0/0` is added to your MongoDB Atlas **Network Access** list and is active.
+If you prefer deploying from your terminal:
 
-### 2. Login or Sign-up fails
-- **Cause**: Missing or incorrect `JWT_SECRET` or database username/password.
-- **Fix**: Check Vercel project settings -> **Environment Variables** and ensure `JWT_SECRET` is defined and `MONGODB_URI` is correctly formatted.
+1. Install Vercel CLI globally:
+   ```bash
+   npm install -g vercel
+   ```
+2. Log in to Vercel:
+   ```bash
+   vercel login
+   ```
+3. Deploy to preview environment:
+   ```bash
+   vercel
+   ```
+4. Deploy to production environment:
+   ```bash
+   vercel --prod
+   ```
 
-### 3. Generated URLs point to the wrong hostname
-- **Cause**: `APP_URL` environment variable is not updated.
-- **Fix**: Update the `APP_URL` in Vercel Environment Variables settings to your custom domain or production Vercel URL and trigger a redeployment.
+---
+
+## Step 4: Environment Variables Setup
+
+You can manage environment variables directly in the Vercel Dashboard:
+- Go to **Project Settings** -> **Environment Variables**.
+- Add or update values for **Production**, **Preview**, and **Development**.
+- Trigger a redeploy (**Deployments** tab -> click `...` on latest commit -> **Redeploy**) whenever you change environment variables.
+
+---
+
+## Step 5: Verify Deployment
+
+Once Vercel completes the build:
+1. Open your live Vercel URL (e.g. `https://your-project.vercel.app`).
+2. Test creating an account (`/signup`) and logging in (`/login`).
+3. Test creating a shortened link on `/shorten` or `/dashboard`.
+4. Test clicking the shortened link to ensure automatic 302 redirection works.
+
+---
+
+## 🛠️ Troubleshooting & FAQ
+
+### 1. Database Connection Timeout (500 Server Error)
+- **Cause**: MongoDB Atlas Network Access is blocking Vercel serverless IPs.
+- **Fix**: Go to MongoDB Atlas -> Network Access -> ensure `0.0.0.0/0` is added and active.
+
+### 2. Invalid or Missing Token Error on Login
+- **Cause**: `JWT_SECRET` environment variable is not defined on Vercel.
+- **Fix**: Go to Vercel -> Project Settings -> Environment Variables, add `JWT_SECRET`, and redeploy.
+
+### 3. Generated Short Links point to localhost:3000
+- **Cause**: `APP_URL` environment variable is still set to `http://localhost:3000`.
+- **Fix**: Set `APP_URL` in Vercel settings to `https://your-app.vercel.app` and redeploy.
+
+### 4. Build fails with ESLint or linting errors
+- **Fix**: The project's `next.config.mjs` has `eslint.ignoreDuringBuilds: true` configured to prevent ESLint flat config serialization issues in Vercel build runners.
